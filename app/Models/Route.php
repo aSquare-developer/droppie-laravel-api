@@ -3,8 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Route extends Model
 {
-    //
+    protected $fillable = [
+        'user_id',
+        'start_address',
+        'end_address',
+        'distance_km',
+        'comment',
+    ];
+
+    public function user(): BelongsTo 
+    {
+        return $this->belongsTo(User::class);
+    }
 }
