@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 use App\Models\Route;
-use Illuminate\Http\JsonResponse;
+
 use App\Http\Requests\StoreRouteRequest;
+use App\Http\Requests\UpdateRouteRequest;
 
 use App\Http\Resources\RouteResource;
+
 
 class RouteController extends Controller
 {
@@ -51,16 +54,25 @@ class RouteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateRouteRequest $request, Route $route)
     {
-        //
+        $route->update($request->validated());
+
+        return response()->json([
+            'message' => 'Route updated successfully',
+            'data' => new RouteResource($route)
+        ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Route $route)
     {
-        //
+        $route->delete();
+
+        return response()->json([
+            'message' => 'Route deleted successfully'
+        ]);
     }
 }
