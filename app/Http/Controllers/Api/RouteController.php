@@ -19,9 +19,46 @@ class RouteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $routes = Route::latest()->paginate(10);
+
+        $query = Route::query();
+
+        if($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('start_address', 'like', '%' . $request->search . '%')
+                  ->orWhere('end_address', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('min_distance')) {
+            $query->where('distance_km', '>=', $request->min_distance);
+        }
+
+        if ($request->filled('max_distance')) {
+            $query->where('distance_km', '<=', $request->max_distance);
+        }
+
+        $sort = $request->get('sort', '-created_at');
+
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $column = ltrim($sort, '-');
+
+        $allowedSorts = [
+            'created_at',
+            'distance_km',
+            'started_at',
+        ];
+
+        if (! in_array($column, $allowedSorts, true)) {
+            $column = 'created_at';
+            $direction = 'desc';
+        }
+
+        $routes = $query
+            ->orderBy($column, $direction)
+            ->paginate(10)
+            ->withQueryString();
         
         return RouteResource::collection($routes);
     }
