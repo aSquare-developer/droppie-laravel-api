@@ -23,9 +23,7 @@ class RouteController extends Controller
     {
         $routes = Route::latest()->paginate(10);
         
-        return response()->json([
-            'data' => RouteResource::collection($routes)
-        ]);
+        return RouteResource::collection($routes);
     }
 
     /**
