@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Models\Route;
 use Illuminate\Http\JsonResponse;
+use App\Http\Requests\StoreRouteRequest;
 
 class RouteController extends Controller
 {
@@ -23,9 +24,14 @@ class RouteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreRouteRequest $request)
     {
-        //
+        $route = Route::create($request->validated());
+
+        return response()->json([
+            'message' => 'Route created successfully',
+            'data' => $route
+        ], 201);
     }
 
     /**
