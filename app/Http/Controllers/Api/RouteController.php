@@ -21,7 +21,7 @@ class RouteController extends Controller
      */
     public function index()
     {
-        $routes = Route::latest()->get();
+        $routes = Route::latest()->paginate(10);
         
         return response()->json([
             'data' => RouteResource::collection($routes)
