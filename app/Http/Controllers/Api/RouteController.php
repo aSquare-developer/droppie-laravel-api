@@ -9,6 +9,8 @@ use App\Models\Route;
 use Illuminate\Http\JsonResponse;
 use App\Http\Requests\StoreRouteRequest;
 
+use App\Http\Resources\RouteResource;
+
 class RouteController extends Controller
 {
     /**
@@ -18,7 +20,9 @@ class RouteController extends Controller
     {
         $routes = Route::latest()->get();
         
-        return response()->json($routes);
+        return response()->json([
+            'data' => RouteResource::collection($routes)
+        ]);
     }
 
     /**
@@ -30,16 +34,18 @@ class RouteController extends Controller
 
         return response()->json([
             'message' => 'Route created successfully',
-            'data' => $route
+            'data' => new RouteResource($route)
         ], 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Route $route)
     {
-        //
+        return response()->json([
+            'data' => new RouteResource($route)
+        ]);
     }
 
     /**
