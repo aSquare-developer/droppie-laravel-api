@@ -11,8 +11,11 @@ Route::get('/hello', function () {
     ]);
 });
 
+Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('routes', RouteController::class);
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
-Route::apiResource('routes', RouteController::class);
-

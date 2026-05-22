@@ -23,7 +23,6 @@ class StoreRouteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'exists:users,id'],
             'start_address' => ['required', 'string', 'max:255'],
             'end_address' => ['required', 'string', 'max:255'],
             'distance_km' => ['required', 'integer', 'min:0'],

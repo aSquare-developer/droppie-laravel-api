@@ -22,7 +22,7 @@ class RouteController extends Controller
     public function index(Request $request)
     {
 
-        $query = Route::query();
+        $query = $request->user()->routes();
 
         if($request->filled('search')) {
             $query->where(function($q) use ($request) {
@@ -68,11 +68,13 @@ class RouteController extends Controller
      */
     public function store(StoreRouteRequest $request)
     {
-        $route = Route::create($request->validated());
+        $route = $request->user()->routes()->create(
+            $request->validated()
+        );
 
         return response()->json([
-            'message' => 'Route created successfully',
-            'data' => new RouteResource($route)
+            'message' => 'Route created',
+            'data' => new RouteResource($route),
         ], 201);
     }
 
