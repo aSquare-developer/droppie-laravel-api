@@ -13,9 +13,20 @@ Route::get('/hello', function () {
 
 Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
 
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->post(
+    '/logout',
+    [AuthController::class, 'logout']
+);
+
+Route::middleware('auth:sanctum')->post(
+    '/logout-all',
+    [AuthController::class, 'logoutAll']
+);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('routes', RouteController::class);
 });
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
