@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 
 use App\Models\Route;
 
+use App\Services\RouteService;
+
 use App\Http\Requests\StoreRouteRequest;
 use App\Http\Requests\UpdateRouteRequest;
 
@@ -66,11 +68,9 @@ class RouteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreRouteRequest $request)
+    public function store(StoreRouteRequest $request, RouteService $routeService)
     {
-        $route = $request->user()->routes()->create(
-            $request->validated()
-        );
+        $route = $routeService->createRoute($request->user(), $request->validated());
 
         return response()->json([
             'message' => 'Route created',
@@ -94,12 +94,12 @@ class RouteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateRouteRequest $request, Route $route)
+    public function update(UpdateRouteRequest $request, Route $route, RouteService $routeService)
     {
 
         $this->authorize('update', $route);
 
-        $route->update($request->validated());
+        $route = $routeService->updateRoute($route, $request->validated());
 
         return response()->json([
             'message' => 'Route updated successfully',
@@ -110,12 +110,12 @@ class RouteController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Route $route)
+    public function destroy(Route $route, RouteService $routeService)
     {
 
         $this->authorize('delete', $route);
 
-        $route->delete();
+        $routeService->deleteRoute($route);
 
         return response()->json([
             'message' => 'Route deleted successfully'
