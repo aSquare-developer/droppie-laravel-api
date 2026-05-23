@@ -83,6 +83,9 @@ class RouteController extends Controller
      */
     public function show(Route $route)
     {
+
+        $this->authorize('view', $route);
+
         return response()->json([
             'data' => new RouteResource($route)
         ]);
@@ -93,6 +96,9 @@ class RouteController extends Controller
      */
     public function update(UpdateRouteRequest $request, Route $route)
     {
+
+        $this->authorize('update', $route);
+
         $route->update($request->validated());
 
         return response()->json([
@@ -106,6 +112,9 @@ class RouteController extends Controller
      */
     public function destroy(Route $route)
     {
+
+        $this->authorize('delete', $route);
+
         $route->delete();
 
         return response()->json([
