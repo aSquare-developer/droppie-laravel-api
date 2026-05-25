@@ -9,7 +9,11 @@ class RouteService
 {
     public function createRoute(User $user, array $data): Route 
     {
-        return $user->routes()->create($data);
+        $route = $user->routes()->create($data);
+
+        event(new \App\Events\RouteCreated($route));
+
+        return $route;
     }
 
     public function updateRoute(Route $route, array $data): Route 
