@@ -28,5 +28,6 @@ class ProcessRouteCreated implements ShouldQueue
             'route_id' => $this->route->id,
             'user_id' => $this->route->user_id,
         ]);
+        // throw new \Exception('Something went wrong'); // For testing purposes, we throw an exception to trigger the retry mechanism
     }
 }
