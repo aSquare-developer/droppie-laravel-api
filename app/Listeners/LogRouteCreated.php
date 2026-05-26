@@ -8,7 +8,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use App\Events\RouteCreated;
 use Illuminate\Support\Facades\Log;
 
-class LogRouteCreated
+class LogRouteCreated implements ShouldQueue
 {
     /**
      * Create the event listener.
