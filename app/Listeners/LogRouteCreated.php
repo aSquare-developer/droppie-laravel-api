@@ -8,6 +8,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use App\Events\RouteCreated;
 use Illuminate\Support\Facades\Log;
 
+use App\Jobs\ProcessRouteCreated;
+
 class LogRouteCreated implements ShouldQueue
 {
     /**
@@ -23,9 +25,6 @@ class LogRouteCreated implements ShouldQueue
      */
     public function handle(RouteCreated $event): void
     {
-        Log::info('Route created: ', [
-            'route_id' => $event->route->id,
-            'user_id' => $event->route->user_id,
-        ]);
+        ProcessRouteCreated::dispatch($event->route);
     }
 }
