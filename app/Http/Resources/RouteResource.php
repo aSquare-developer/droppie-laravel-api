@@ -19,6 +19,8 @@ class RouteResource extends JsonResource
             'start_address' => $this->start_address,
             'end_address' => $this->end_address,
             'distance_km' => $this->distance_km,
+            'distance_status' => $this->distance_status,
+            'distance_error' => $this->distance_error,
             'comment' => $this->comment,
             'created_at' => $this->created_at,
         ];

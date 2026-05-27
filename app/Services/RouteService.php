@@ -5,13 +5,18 @@ namespace App\Services;
 use App\Models\Route;
 use App\Models\User;
 
+use App\Jobs\CalculateRouteDistance;
+
 class RouteService
 {
     public function createRoute(User $user, array $data): Route 
     {
-        $route = $user->routes()->create($data);
+        $route = $user->routes()->create([
+            ...$data,
+            'distance_status' => 'pending',
+        ]);
 
-        event(new \App\Events\RouteCreated($route));
+        CalculateRouteDistance::dispatch($route);
 
         return $route;
     }

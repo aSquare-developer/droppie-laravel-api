@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'google' => [
+        'routes_api_key' => env('GOOGLE_ROUTES_API_KEY'),
+    ],
+
 ];

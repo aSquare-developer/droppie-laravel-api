@@ -16,6 +16,8 @@ class Route extends Model
         'start_address',
         'end_address',
         'distance_km',
+        'distance_status',
+        'distance_error',
         'comment',
     ];
 

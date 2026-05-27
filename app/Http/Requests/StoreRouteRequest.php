@@ -25,7 +25,6 @@ class StoreRouteRequest extends FormRequest
         return [
             'start_address' => ['required', 'string', 'max:255'],
             'end_address' => ['required', 'string', 'max:255'],
-            'distance_km' => ['required', 'integer', 'min:0'],
             'comment' => ['nullable', 'string'],
         ];
     }
