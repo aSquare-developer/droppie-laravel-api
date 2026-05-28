@@ -3,30 +3,27 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\RouteReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class RouteReportController extends Controller
 {
-    public function download(Request $request): Response
+    public function download(Request $request, RouteReportService $routeReportService): Response 
     {
         $validated = $request->validate([
             'from' => ['required', 'date'],
             'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
 
-        $routes = $request->user()
-            ->routes()
-            ->whereBetween('created_at', [
-                $validated['from'] . ' 00:00:00',
-                $validated['to'] . ' 23:59:59',
-            ])
-            ->where('distance_status', 'completed')
-            ->orderBy('created_at')
-            ->get();
+        $routes = $routeReportService->getRoutesForPeriod(
+            $request->user(),
+            $validated['from'],
+            $validated['to']
+        );
 
-        $totalDistanceKm = $routes->sum('distance_km');
+        $totalDistanceKm = $routeReportService->getTotalDistance($routes);
 
         $pdf = Pdf::loadView('pdf.routes-report', [
             'user' => $request->user(),

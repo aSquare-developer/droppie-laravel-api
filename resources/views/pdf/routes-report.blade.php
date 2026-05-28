@@ -69,17 +69,15 @@
                 <th>Start</th>
                 <th>End</th>
                 <th>Distance</th>
-                <th>Comment</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($routes as $route)
                 <tr>
-                    <td>{{ $route->started_at }}</td>
+                    <td>{{ $route->created_at->format('d.m.Y') }}</td>
                     <td>{{ $route->start_address }}</td>
                     <td>{{ $route->end_address }}</td>
                     <td>{{ $route->distance_km }} km</td>
-                    <td>{{ $route->comment ?? '-' }}</td>
                 </tr>
             @empty
                 <tr>
