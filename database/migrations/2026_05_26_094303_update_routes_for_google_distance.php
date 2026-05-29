@@ -12,12 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('routes', function (Blueprint $table) {
-            $table->integer('distance_km')->nullable()->change();
+            $table->double('distance_km')->nullable()->change();
             $table->string('distance_status')->default('pending');
             $table->text('distance_error')->nullable();
         });
     }
-
     /**
      * Reverse the migrations.
      */

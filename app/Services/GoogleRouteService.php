@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class GoogleRouteService
 {
-    public function getDistanceInKm(string $startAddress,string $endAddress): int 
+    public function getDistanceInKm(string $startAddress,string $endAddress): float
     {
 
         $cacheKey = $this->makeDistanceCacheKey(
@@ -40,7 +40,7 @@ class GoogleRouteService
         return $distanceKm;
     }
 
-    private function fetchDistanceFromGoogle(string $startAddress, string $endAddress): int 
+    private function fetchDistanceFromGoogle(string $startAddress, string $endAddress): float
     {
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => config('services.google.routes_api_key'),
@@ -63,7 +63,7 @@ class GoogleRouteService
             throw new \RuntimeException('Google Routes API did not return distance.');
         }
 
-        return (int) round($meters / 1000);
+        return (float) round($meters / 1000, 1);
     }
 
     private function makeDistanceCacheKey(string $startAddress, string $endAddress): string 

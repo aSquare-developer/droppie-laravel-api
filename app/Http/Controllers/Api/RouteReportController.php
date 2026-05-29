@@ -8,6 +8,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
+use Carbon\Carbon;
+
 class RouteReportController extends Controller
 {
     public function download(Request $request, RouteReportService $routeReportService): Response 
@@ -16,6 +18,9 @@ class RouteReportController extends Controller
             'from' => ['required', 'date'],
             'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
+
+        $fromFormatted = Carbon::parse($validated['from'])->format('d.m.Y');
+        $toFormatted = Carbon::parse($validated['to'])->format('d.m.Y');
 
         $routes = $routeReportService->getRoutesForPeriod(
             $request->user(),
@@ -28,13 +33,13 @@ class RouteReportController extends Controller
         $pdf = Pdf::loadView('pdf.routes-report', [
             'user' => $request->user(),
             'routes' => $routes,
-            'from' => $validated['from'],
-            'to' => $validated['to'],
+            'from' => $fromFormatted,
+            'to' => $toFormatted,
             'totalDistanceKm' => $totalDistanceKm,
         ]);
 
         return $pdf->download(
-            'routes-report-' . $validated['from'] . '-' . $validated['to'] . '.pdf'
+            'routes-report-' . $fromFormatted . '-' . $toFormatted . '.pdf'
         );
     }
 }
