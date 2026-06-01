@@ -23,7 +23,21 @@ class RouteService
 
     public function updateRoute(Route $route, array $data): Route 
     {
-        $route->update($data);
+        $route->fill($data);
+
+        $addressesChanged = $route->isDirty('start_address') || $route->isDirty('end_address');
+
+        if ($addressesChanged) {
+            $route->distance_km = null;
+            $route->distance_status = 'pending';
+            $route->distance_error = null;
+        }
+
+        $route->save();
+
+        if ($addressesChanged) {
+            CalculateRouteDistance::dispatch($route->fresh());
+        }
 
         return $route->fresh();
     }
