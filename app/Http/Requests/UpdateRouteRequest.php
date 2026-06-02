@@ -25,8 +25,8 @@ class UpdateRouteRequest extends FormRequest
         return [
             'start_address' => ['sometimes', 'string', 'max:255'],
             'end_address' => ['sometimes', 'string', 'max:255'],
+            'started_at' => ['sometimes', 'date'],
             'distance_km' => ['sometimes', 'integer', 'min:0'],
-            'comment' => ['nullable', 'string'],
         ];
     }
 }

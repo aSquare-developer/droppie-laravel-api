@@ -74,14 +74,14 @@
         <tbody>
             @forelse ($routes as $route)
                 <tr>
-                    <td>{{ $route->created_at->format('d.m.Y') }}</td>
+                    <td>{{ $route->started_at->format('d.m.Y') }}</td>
                     <td>{{ $route->start_address }}</td>
                     <td>{{ $route->end_address }}</td>
                     <td>{{ $route->distance_km }} km</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5">No completed routes found for this period.</td>
+                    <td colspan="4">No completed routes found for this period.</td>
                 </tr>
             @endforelse
         </tbody>

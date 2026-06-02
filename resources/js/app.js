@@ -16,7 +16,7 @@ const state = {
         search: '',
         min_distance: '',
         max_distance: '',
-        sort: '-created_at',
+        sort: '-started_at',
         page: 1,
     },
     report: {
@@ -76,12 +76,15 @@ function formatDistance(value) {
     })} км`;
 }
 
-function formatDate(value) {
+function formatDateOnly(value) {
     if (!value) {
         return 'нет даты';
     }
 
-    const date = new Date(value);
+    const parts = String(value).split('-').map(Number);
+    const date = parts.length === 3
+        ? new Date(parts[0], parts[1] - 1, parts[2])
+        : new Date(value);
 
     if (Number.isNaN(date.getTime())) {
         return 'нет даты';
@@ -91,8 +94,6 @@ function formatDate(value) {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
     }).format(date);
 }
 
@@ -345,8 +346,8 @@ function renderDashboard() {
                                 <input name="end_address" type="text" required maxlength="255" value="${escapeHtml(editing?.end_address || '')}">
                             </label>
                             <label>
-                                <span>Комментарий</span>
-                                <textarea name="comment" rows="4">${escapeHtml(editing?.comment || '')}</textarea>
+                                <span>Дата поездки</span>
+                                <input name="started_at" type="date" required value="${escapeHtml(editing?.started_at || dateInput(new Date()))}">
                             </label>
                             <button class="primary-action" type="submit" ${state.routeLoading ? 'disabled' : ''}>
                                 ${state.routeLoading ? 'Сохраняю...' : editing ? 'Сохранить' : 'Добавить маршрут'}
@@ -396,12 +397,12 @@ function renderDashboard() {
                         <label>
                             <span>Сортировка</span>
                             <select name="sort">
-                                ${sortOption('-created_at', 'Новые сначала')}
-                                ${sortOption('created_at', 'Старые сначала')}
+                                ${sortOption('-started_at', 'Поездки позже')}
+                                ${sortOption('started_at', 'Поездки раньше')}
                                 ${sortOption('-distance_km', 'Дальние сначала')}
                                 ${sortOption('distance_km', 'Короткие сначала')}
-                                ${sortOption('-started_at', 'По старту позже')}
-                                ${sortOption('started_at', 'По старту раньше')}
+                                ${sortOption('-created_at', 'Созданы позже')}
+                                ${sortOption('created_at', 'Созданы раньше')}
                             </select>
                         </label>
                         <div class="filter-actions">
@@ -487,11 +488,11 @@ function renderRoutes() {
                 <div class="route-meta">
                     <span class="status-pill">${escapeHtml(routeStatusLabel(route))}</span>
                     <strong>${escapeHtml(formatDistance(route.distance_km))}</strong>
-                    <small>${escapeHtml(formatDate(route.created_at))}</small>
+                    <small>${escapeHtml(formatDateOnly(route.started_at))}</small>
                 </div>
             </div>
-            ${route.comment || route.distance_error ? `
-                <p class="route-note">${escapeHtml(route.distance_error || route.comment)}</p>
+            ${route.distance_error ? `
+                <p class="route-note">${escapeHtml(route.distance_error)}</p>
             ` : ''}
             <div class="route-actions">
                 <button type="button" class="text-action" data-action="edit-route" data-route-id="${route.id}">Редактировать</button>
@@ -589,7 +590,7 @@ async function handleRouteSubmit(event) {
     const payload = {
         start_address: String(formData.get('start_address') || '').trim(),
         end_address: String(formData.get('end_address') || '').trim(),
-        comment: String(formData.get('comment') || '').trim() || null,
+        started_at: String(formData.get('started_at') || '').trim(),
     };
 
     state.routeLoading = true;
@@ -630,7 +631,7 @@ async function handleFilterSubmit(event) {
         search: String(formData.get('search') || '').trim(),
         min_distance: String(formData.get('min_distance') || '').trim(),
         max_distance: String(formData.get('max_distance') || '').trim(),
-        sort: String(formData.get('sort') || '-created_at'),
+        sort: String(formData.get('sort') || '-started_at'),
         page: 1,
     };
 
@@ -705,7 +706,7 @@ async function handleActionClick(event) {
             search: '',
             min_distance: '',
             max_distance: '',
-            sort: '-created_at',
+            sort: '-started_at',
             page: 1,
         };
         await refreshRoutes();
