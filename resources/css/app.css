@@ -87,6 +87,11 @@ textarea {
     resize: vertical;
 }
 
+.readonly-field {
+    background: var(--surface-soft);
+    color: var(--muted);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -303,6 +308,11 @@ label span {
 }
 
 .compact-form {
+    display: grid;
+    gap: 12px;
+}
+
+.profile-form-grid {
     display: grid;
     gap: 12px;
 }
