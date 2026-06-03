@@ -4,18 +4,23 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
-
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class GoogleRouteService
 {
-    public function getDistanceInKm(string $startAddress,string $endAddress): float
-    {
+    public function getDistanceInKm(
+        string $startAddress,
+        string $endAddress,
+        ?string $startPlaceId = null,
+        ?string $endPlaceId = null
+    ): float {
 
         $cacheKey = $this->makeDistanceCacheKey(
             $startAddress,
-            $endAddress
+            $endAddress,
+            $startPlaceId,
+            $endPlaceId
         );
 
         if (Cache::has($cacheKey)) {
@@ -32,7 +37,9 @@ class GoogleRouteService
 
         $distanceKm = $this->fetchDistanceFromGoogle(
             $startAddress,
-            $endAddress
+            $endAddress,
+            $startPlaceId,
+            $endPlaceId
         );
 
         Cache::put($cacheKey, $distanceKm, now()->addDays(7));
@@ -40,18 +47,18 @@ class GoogleRouteService
         return $distanceKm;
     }
 
-    private function fetchDistanceFromGoogle(string $startAddress, string $endAddress): float
-    {
+    private function fetchDistanceFromGoogle(
+        string $startAddress,
+        string $endAddress,
+        ?string $startPlaceId = null,
+        ?string $endPlaceId = null
+    ): float {
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => config('services.google.routes_api_key'),
             'X-Goog-FieldMask' => 'routes.distanceMeters',
         ])->post('https://routes.googleapis.com/directions/v2:computeRoutes', [
-            'origin' => [
-                'address' => $startAddress,
-            ],
-            'destination' => [
-                'address' => $endAddress,
-            ],
+            'origin' => $this->waypoint($startAddress, $startPlaceId),
+            'destination' => $this->waypoint($endAddress, $endPlaceId),
             'travelMode' => 'DRIVE',
         ]);
 
@@ -66,8 +73,25 @@ class GoogleRouteService
         return (float) round($meters / 1000, 1);
     }
 
-    private function makeDistanceCacheKey(string $startAddress, string $endAddress): string 
+    private function waypoint(string $address, ?string $placeId): array
     {
+        if (filled($placeId)) {
+            return [
+                'placeId' => $placeId,
+            ];
+        }
+
+        return [
+            'address' => $address,
+        ];
+    }
+
+    private function makeDistanceCacheKey(
+        string $startAddress,
+        string $endAddress,
+        ?string $startPlaceId = null,
+        ?string $endPlaceId = null
+    ): string {
         $start = Str::of($startAddress)
             ->lower()
             ->squish()
@@ -78,6 +102,6 @@ class GoogleRouteService
             ->squish()
             ->toString();
 
-        return 'routes:distance:' . sha1($start . '|' . $end);
+        return 'routes:distance:'.sha1(($startPlaceId ?: $start).'|'.($endPlaceId ?: $end));
     }
 }

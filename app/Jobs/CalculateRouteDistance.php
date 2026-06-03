@@ -36,6 +36,8 @@ class CalculateRouteDistance implements ShouldQueue
         $distanceKm = $googleRouteService->getDistanceInKm(
             $this->route->start_address,
             $this->route->end_address,
+            $this->route->start_place_id,
+            $this->route->end_place_id,
         );
 
         $this->route->update([

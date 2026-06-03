@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RouteController;
@@ -25,6 +26,8 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/addresses/autocomplete', [AddressController::class, 'autocomplete']);
+    Route::post('/addresses/validate', [AddressController::class, 'validateAddress']);
     Route::apiResource('routes', RouteController::class);
     Route::get('/reports/routes/pdf', [RouteReportController::class, 'download']);
 });
