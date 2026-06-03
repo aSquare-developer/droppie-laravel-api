@@ -21,8 +21,8 @@ class RouteFactory extends Factory
             'user_id' => 1,
             'start_address' => $this->faker->address(),
             'end_address' => $this->faker->address(),
+            'started_at' => $this->faker->date(),
             'distance_km' => $this->faker->numberBetween(1, 1000),
-            'comment' => $this->faker->sentence(),
         ];
     }
 }

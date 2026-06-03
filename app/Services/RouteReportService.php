@@ -11,12 +11,10 @@ class RouteReportService
     {
         return $user
             ->routes()
-            ->whereBetween('created_at', [
-                $from . ' 00:00:00',
-                $to . ' 23:59:59',
-            ])
+            ->whereDate('started_at', '>=', $from)
+            ->whereDate('started_at', '<=', $to)
             ->where('distance_status', 'completed')
-            ->orderBy('created_at')
+            ->orderBy('started_at')
             ->get();
     }
 

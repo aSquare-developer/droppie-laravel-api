@@ -41,7 +41,7 @@ class RouteController extends Controller
             $query->where('distance_km', '<=', $request->max_distance);
         }
 
-        $sort = $request->get('sort', '-created_at');
+        $sort = $request->get('sort', '-started_at');
 
         $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
         $column = ltrim($sort, '-');
@@ -53,7 +53,7 @@ class RouteController extends Controller
         ];
 
         if (! in_array($column, $allowedSorts, true)) {
-            $column = 'created_at';
+            $column = 'started_at';
             $direction = 'desc';
         }
 

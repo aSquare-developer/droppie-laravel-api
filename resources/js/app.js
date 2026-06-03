@@ -16,7 +16,7 @@ const state = {
         search: '',
         min_distance: '',
         max_distance: '',
-        sort: '-created_at',
+        sort: '-started_at',
         page: 1,
     },
     report: {
@@ -26,6 +26,7 @@ const state = {
     editingRoute: null,
     loading: false,
     routeLoading: false,
+    profileLoading: false,
     flash: null,
 };
 
@@ -76,12 +77,15 @@ function formatDistance(value) {
     })} км`;
 }
 
-function formatDate(value) {
+function formatDateOnly(value) {
     if (!value) {
         return 'нет даты';
     }
 
-    const date = new Date(value);
+    const parts = String(value).split('-').map(Number);
+    const date = parts.length === 3
+        ? new Date(parts[0], parts[1] - 1, parts[2])
+        : new Date(value);
 
     if (Number.isNaN(date.getTime())) {
         return 'нет даты';
@@ -91,8 +95,6 @@ function formatDate(value) {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
     }).format(date);
 }
 
@@ -225,10 +227,10 @@ function renderAuth() {
 
     root.innerHTML = `
         <main class="auth-shell">
-            <section class="auth-visual-panel" aria-label="DroppieTrack">
+            <section class="auth-visual-panel" aria-label="Droppie">
                 <div class="brand-row">
                     <span class="brand-mark">DT</span>
-                    <span class="brand-name">DroppieTrack</span>
+                    <span class="brand-name">Droppie</span>
                 </div>
                 <div class="route-visual" aria-hidden="true">
                     <span class="route-stop route-stop-start"></span>
@@ -245,7 +247,7 @@ function renderAuth() {
             <section class="auth-card" aria-label="Авторизация">
                 <div class="mobile-brand">
                     <span class="brand-mark">DT</span>
-                    <span class="brand-name">DroppieTrack</span>
+                    <span class="brand-name">Droppie</span>
                 </div>
 
                 ${renderFlash()}
@@ -304,7 +306,7 @@ function renderDashboard() {
                 <div class="brand-row compact">
                     <span class="brand-mark">DT</span>
                     <div>
-                        <span class="brand-name">DroppieTrack</span>
+                        <span class="brand-name">Droppie</span>
                         <span class="brand-subtitle">Web dashboard</span>
                     </div>
                 </div>
@@ -345,11 +347,56 @@ function renderDashboard() {
                                 <input name="end_address" type="text" required maxlength="255" value="${escapeHtml(editing?.end_address || '')}">
                             </label>
                             <label>
-                                <span>Комментарий</span>
-                                <textarea name="comment" rows="4">${escapeHtml(editing?.comment || '')}</textarea>
+                                <span>Дата поездки</span>
+                                <input name="started_at" type="date" required value="${escapeHtml(editing?.started_at || dateInput(new Date()))}">
                             </label>
                             <button class="primary-action" type="submit" ${state.routeLoading ? 'disabled' : ''}>
                                 ${state.routeLoading ? 'Сохраняю...' : editing ? 'Сохранить' : 'Добавить маршрут'}
+                            </button>
+                        </form>
+                    </section>
+
+                    <section class="panel-section">
+                        <div class="section-title">
+                            <h2>Профиль</h2>
+                        </div>
+                        <form id="profile-form" class="stacked-form profile-form">
+                            <div class="profile-form-grid">
+                                <label>
+                                    <span>Имя</span>
+                                    <input name="name" type="text" autocomplete="given-name" required maxlength="255" value="${escapeHtml(state.user?.name || '')}">
+                                </label>
+                                <label>
+                                    <span>Фамилия</span>
+                                    <input name="last_name" type="text" autocomplete="family-name" maxlength="255" value="${escapeHtml(state.user?.last_name || '')}">
+                                </label>
+                                <label>
+                                    <span>Электронная почта</span>
+                                    <input type="email" autocomplete="email" readonly aria-readonly="true" class="readonly-field" value="${escapeHtml(state.user?.email || '')}">
+                                </label>
+                                <label>
+                                    <span>Название фирмы</span>
+                                    <input name="company_name" type="text" autocomplete="organization" maxlength="255" value="${escapeHtml(state.user?.company_name || '')}">
+                                </label>
+                                <label>
+                                    <span>Регистрационный номер авто</span>
+                                    <input name="car_registration_number" type="text" maxlength="50" value="${escapeHtml(state.user?.car_registration_number || '')}">
+                                </label>
+                                <label>
+                                    <span>Марка, модель авто</span>
+                                    <input name="car_make_model" type="text" maxlength="255" value="${escapeHtml(state.user?.car_make_model || '')}">
+                                </label>
+                                <label>
+                                    <span>Пробег авто</span>
+                                    <input name="car_mileage" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(state.user?.car_mileage ?? '')}">
+                                </label>
+                                <label>
+                                    <span>Страна проживания</span>
+                                    <input name="country" type="text" autocomplete="country-name" maxlength="100" value="${escapeHtml(state.user?.country || '')}">
+                                </label>
+                            </div>
+                            <button class="secondary-action" type="submit" ${state.profileLoading ? 'disabled' : ''}>
+                                ${state.profileLoading ? 'Сохраняю...' : 'Сохранить профиль'}
                             </button>
                         </form>
                     </section>
@@ -396,12 +443,12 @@ function renderDashboard() {
                         <label>
                             <span>Сортировка</span>
                             <select name="sort">
-                                ${sortOption('-created_at', 'Новые сначала')}
-                                ${sortOption('created_at', 'Старые сначала')}
+                                ${sortOption('-started_at', 'Поездки позже')}
+                                ${sortOption('started_at', 'Поездки раньше')}
                                 ${sortOption('-distance_km', 'Дальние сначала')}
                                 ${sortOption('distance_km', 'Короткие сначала')}
-                                ${sortOption('-started_at', 'По старту позже')}
-                                ${sortOption('started_at', 'По старту раньше')}
+                                ${sortOption('-created_at', 'Созданы позже')}
+                                ${sortOption('created_at', 'Созданы раньше')}
                             </select>
                         </label>
                         <div class="filter-actions">
@@ -487,11 +534,11 @@ function renderRoutes() {
                 <div class="route-meta">
                     <span class="status-pill">${escapeHtml(routeStatusLabel(route))}</span>
                     <strong>${escapeHtml(formatDistance(route.distance_km))}</strong>
-                    <small>${escapeHtml(formatDate(route.created_at))}</small>
+                    <small>${escapeHtml(formatDateOnly(route.started_at))}</small>
                 </div>
             </div>
-            ${route.comment || route.distance_error ? `
-                <p class="route-note">${escapeHtml(route.distance_error || route.comment)}</p>
+            ${route.distance_error ? `
+                <p class="route-note">${escapeHtml(route.distance_error)}</p>
             ` : ''}
             <div class="route-actions">
                 <button type="button" class="text-action" data-action="edit-route" data-route-id="${route.id}">Редактировать</button>
@@ -530,6 +577,7 @@ function renderPagination() {
 
 function wireDashboard() {
     root.querySelector('#route-form')?.addEventListener('submit', handleRouteSubmit);
+    root.querySelector('#profile-form')?.addEventListener('submit', handleProfileSubmit);
     root.querySelector('#filter-form')?.addEventListener('submit', handleFilterSubmit);
     root.querySelector('#report-form')?.addEventListener('submit', handleReportSubmit);
 
@@ -572,7 +620,7 @@ async function handleAuthSubmit(event) {
         );
 
         persistSession(response);
-        setFlash('success', 'Вы вошли в DroppieTrack.');
+        setFlash('success', 'Вы вошли в Droppie.');
         await fetchRoutes();
     } catch (error) {
         setFlash('error', error.message);
@@ -589,7 +637,7 @@ async function handleRouteSubmit(event) {
     const payload = {
         start_address: String(formData.get('start_address') || '').trim(),
         end_address: String(formData.get('end_address') || '').trim(),
-        comment: String(formData.get('comment') || '').trim() || null,
+        started_at: String(formData.get('started_at') || '').trim(),
     };
 
     state.routeLoading = true;
@@ -621,6 +669,42 @@ async function handleRouteSubmit(event) {
     }
 }
 
+async function handleProfileSubmit(event) {
+    event.preventDefault();
+    clearFlash();
+
+    const formData = new FormData(event.currentTarget);
+    const mileage = String(formData.get('car_mileage') || '').trim();
+    const payload = {
+        name: String(formData.get('name') || '').trim(),
+        last_name: String(formData.get('last_name') || '').trim(),
+        company_name: String(formData.get('company_name') || '').trim(),
+        car_registration_number: String(formData.get('car_registration_number') || '').trim(),
+        car_make_model: String(formData.get('car_make_model') || '').trim(),
+        car_mileage: mileage === '' ? null : Number(mileage),
+        country: String(formData.get('country') || '').trim(),
+    };
+
+    state.profileLoading = true;
+    renderDashboard();
+
+    try {
+        const response = await requestJson('/profile', {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+        });
+
+        state.user = response.user;
+        localStorage.setItem(storageKeys.user, JSON.stringify(response.user));
+        setFlash('success', 'Профиль сохранен.');
+    } catch (error) {
+        setFlash('error', error.message);
+    } finally {
+        state.profileLoading = false;
+        renderDashboard();
+    }
+}
+
 async function handleFilterSubmit(event) {
     event.preventDefault();
     clearFlash();
@@ -630,7 +714,7 @@ async function handleFilterSubmit(event) {
         search: String(formData.get('search') || '').trim(),
         min_distance: String(formData.get('min_distance') || '').trim(),
         max_distance: String(formData.get('max_distance') || '').trim(),
-        sort: String(formData.get('sort') || '-created_at'),
+        sort: String(formData.get('sort') || '-started_at'),
         page: 1,
     };
 
@@ -705,7 +789,7 @@ async function handleActionClick(event) {
             search: '',
             min_distance: '',
             max_distance: '',
-            sort: '-created_at',
+            sort: '-started_at',
             page: 1,
         };
         await refreshRoutes();
