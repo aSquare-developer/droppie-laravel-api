@@ -3,18 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-
-use App\Models\Route;
-
-use App\Services\RouteService;
-
 use App\Http\Requests\StoreRouteRequest;
 use App\Http\Requests\UpdateRouteRequest;
-
 use App\Http\Resources\RouteResource;
-
+use App\Models\Route;
+use App\Services\RouteService;
+use Illuminate\Http\Request;
 
 class RouteController extends Controller
 {
@@ -24,12 +18,25 @@ class RouteController extends Controller
     public function index(Request $request)
     {
 
-        $query = $request->user()->routes();
+        $query = $request->user()
+            ->routes()
+            ->with(['startAddress', 'endAddress']);
 
-        if($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('start_address', 'like', '%' . $request->search . '%')
-                  ->orWhere('end_address', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q
+                    ->whereHas('startAddress', function ($addressQuery) use ($request) {
+                        $addressQuery
+                            ->where('formatted_address', 'like', '%'.$request->search.'%')
+                            ->orWhere('city', 'like', '%'.$request->search.'%')
+                            ->orWhere('postal_code', 'like', '%'.$request->search.'%');
+                    })
+                    ->orWhereHas('endAddress', function ($addressQuery) use ($request) {
+                        $addressQuery
+                            ->where('formatted_address', 'like', '%'.$request->search.'%')
+                            ->orWhere('city', 'like', '%'.$request->search.'%')
+                            ->orWhere('postal_code', 'like', '%'.$request->search.'%');
+                    });
             });
         }
 
@@ -61,7 +68,7 @@ class RouteController extends Controller
             ->orderBy($column, $direction)
             ->paginate(10)
             ->withQueryString();
-        
+
         return RouteResource::collection($routes);
     }
 
@@ -86,8 +93,10 @@ class RouteController extends Controller
 
         $this->authorize('view', $route);
 
+        $route->loadMissing(['startAddress', 'endAddress']);
+
         return response()->json([
-            'data' => new RouteResource($route)
+            'data' => new RouteResource($route),
         ]);
     }
 
@@ -103,7 +112,7 @@ class RouteController extends Controller
 
         return response()->json([
             'message' => 'Route updated successfully',
-            'data' => new RouteResource($route)
+            'data' => new RouteResource($route),
         ]);
     }
 
@@ -118,7 +127,7 @@ class RouteController extends Controller
         $routeService->deleteRoute($route);
 
         return response()->json([
-            'message' => 'Route deleted successfully'
+            'message' => 'Route deleted successfully',
         ]);
     }
 }

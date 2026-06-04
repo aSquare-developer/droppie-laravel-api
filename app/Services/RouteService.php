@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\AddressLookupException;
 use App\Exceptions\InvalidAddressException;
 use App\Jobs\CalculateRouteDistance;
+use App\Models\Address;
 use App\Models\Route;
 use App\Models\User;
 use Illuminate\Support\Arr;
@@ -22,14 +23,14 @@ class RouteService
     {
         $route = $user->routes()->create([
             ...Arr::only($data, ['started_at']),
-            ...$this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null),
-            ...$this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null),
+            'start_address_id' => $this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
+            'end_address_id' => $this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
             'distance_status' => 'pending',
         ]);
 
         CalculateRouteDistance::dispatch($route);
 
-        return $route;
+        return $route->load(['startAddress', 'endAddress']);
     }
 
     public function updateRoute(Route $route, array $data): Route
@@ -39,24 +40,22 @@ class RouteService
         if (array_key_exists('start_place_id', $data)) {
             $payload = [
                 ...$payload,
-                ...$this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null),
+                'start_address_id' => $this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
             ];
         }
 
         if (array_key_exists('end_place_id', $data)) {
             $payload = [
                 ...$payload,
-                ...$this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null),
+                'end_address_id' => $this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
             ];
         }
 
         $route->fill($payload);
 
         $addressesChanged = $route->isDirty([
-            'start_place_id',
-            'start_address',
-            'end_place_id',
-            'end_address',
+            'start_address_id',
+            'end_address_id',
         ]);
 
         if ($addressesChanged) {
@@ -71,7 +70,7 @@ class RouteService
             CalculateRouteDistance::dispatch($route->fresh());
         }
 
-        return $route->fresh();
+        return $route->fresh(['startAddress', 'endAddress']);
     }
 
     public function deleteRoute(Route $route): void
@@ -79,10 +78,7 @@ class RouteService
         $route->delete();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function resolveAddress(string $prefix, string $placeId, ?string $sessionToken): array
+    private function resolveAddress(string $prefix, string $placeId, ?string $sessionToken): Address
     {
         try {
             $address = $this->addresses->validatePlace($placeId, $sessionToken);
@@ -94,17 +90,19 @@ class RouteService
             throw new HttpException(503, $exception->getMessage(), $exception);
         }
 
-        return [
-            $prefix.'_place_id' => $address['place_id'],
-            $prefix.'_address' => $address['formatted_address'],
-            $prefix.'_postal_code' => $address['postal_code'],
-            $prefix.'_city' => $address['city'],
-            $prefix.'_country' => $address['country'],
-            $prefix.'_country_code' => $address['country_code'],
-            $prefix.'_street' => $address['street'],
-            $prefix.'_street_number' => $address['street_number'],
-            $prefix.'_latitude' => $address['latitude'],
-            $prefix.'_longitude' => $address['longitude'],
-        ];
+        return Address::updateOrCreate(
+            ['place_id' => $address['place_id']],
+            [
+                'formatted_address' => $address['formatted_address'],
+                'postal_code' => $address['postal_code'],
+                'city' => $address['city'],
+                'country' => $address['country'],
+                'country_code' => $address['country_code'],
+                'street' => $address['street'],
+                'street_number' => $address['street_number'],
+                'latitude' => $address['latitude'],
+                'longitude' => $address['longitude'],
+            ]
+        );
     }
 }

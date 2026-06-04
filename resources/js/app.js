@@ -16,7 +16,7 @@ const state = {
         search: '',
         min_distance: '',
         max_distance: '',
-        sort: '-started_at',
+        sort: '-created_at',
         page: 1,
     },
     report: {
@@ -234,7 +234,7 @@ function renderAuth() {
         <main class="auth-shell">
             <section class="auth-visual-panel" aria-label="Droppie">
                 <div class="brand-row">
-                    <span class="brand-mark">DT</span>
+                    <span class="brand-mark">D</span>
                     <span class="brand-name">Droppie</span>
                 </div>
                 <div class="route-visual" aria-hidden="true">
@@ -911,7 +911,7 @@ async function handleFilterSubmit(event) {
         search: String(formData.get('search') || '').trim(),
         min_distance: String(formData.get('min_distance') || '').trim(),
         max_distance: String(formData.get('max_distance') || '').trim(),
-        sort: String(formData.get('sort') || '-started_at'),
+        sort: String(formData.get('sort') || '-created_at'),
         page: 1,
     };
 
@@ -986,7 +986,7 @@ async function handleActionClick(event) {
             search: '',
             min_distance: '',
             max_distance: '',
-            sort: '-started_at',
+            sort: '-created_at',
             page: 1,
         };
         await refreshRoutes();

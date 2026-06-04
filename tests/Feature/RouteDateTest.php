@@ -75,20 +75,37 @@ it('stores the trip date and omits comments from route responses', function () {
     $data = $response->json('data');
 
     expect($data['started_at'])->toBe('2026-06-01');
+    expect($data['start_address'])->toBe('Mannerheimintie 1, 00100 Helsinki, Finland');
+    expect($data['start_place_id'])->toBe('start-place');
+    expect($data['start_postal_code'])->toBe('00100');
+    expect($data['start_city'])->toBe('Helsinki');
+    expect($data['end_address'])->toBe('Otakaari 1, 02150 Espoo, Finland');
+    expect($data['end_place_id'])->toBe('end-place');
+    expect($data['end_postal_code'])->toBe('02150');
+    expect($data['end_city'])->toBe('Espoo');
     expect(array_key_exists('comment', $data))->toBeFalse();
     expect(Schema::hasColumn('routes', 'comment'))->toBeFalse();
+    expect(Schema::hasColumn('routes', 'start_address'))->toBeFalse();
+    expect(Schema::hasColumn('routes', 'end_address'))->toBeFalse();
+    expect(Schema::hasTable('addresses'))->toBeTrue();
 
     $this->assertDatabaseHas('routes', [
         'user_id' => $user->id,
-        'start_address' => 'Mannerheimintie 1, 00100 Helsinki, Finland',
-        'start_place_id' => 'start-place',
-        'start_postal_code' => '00100',
-        'start_city' => 'Helsinki',
-        'end_address' => 'Otakaari 1, 02150 Espoo, Finland',
-        'end_place_id' => 'end-place',
-        'end_postal_code' => '02150',
-        'end_city' => 'Espoo',
         'started_at' => '2026-06-01 00:00:00',
+    ]);
+
+    $this->assertDatabaseHas('addresses', [
+        'place_id' => 'start-place',
+        'formatted_address' => 'Mannerheimintie 1, 00100 Helsinki, Finland',
+        'postal_code' => '00100',
+        'city' => 'Helsinki',
+    ]);
+
+    $this->assertDatabaseHas('addresses', [
+        'place_id' => 'end-place',
+        'formatted_address' => 'Otakaari 1, 02150 Espoo, Finland',
+        'postal_code' => '02150',
+        'city' => 'Espoo',
     ]);
 
     Queue::assertPushed(CalculateRouteDistance::class);
