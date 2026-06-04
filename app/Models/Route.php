@@ -2,19 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Route extends Model
 {
-
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'start_address',
-        'end_address',
+        'start_address_id',
+        'end_address_id',
         'started_at',
         'distance_km',
         'distance_status',
@@ -28,8 +27,18 @@ class Route extends Model
         ];
     }
 
-    public function user(): BelongsTo 
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function startAddress(): BelongsTo
+    {
+        return $this->belongsTo(Address::class, 'start_address_id');
+    }
+
+    public function endAddress(): BelongsTo
+    {
+        return $this->belongsTo(Address::class, 'end_address_id');
     }
 }

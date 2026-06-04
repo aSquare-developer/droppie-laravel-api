@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Address;
 use App\Models\Route;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,8 +20,8 @@ class RouteFactory extends Factory
     {
         return [
             'user_id' => 1,
-            'start_address' => $this->faker->address(),
-            'end_address' => $this->faker->address(),
+            'start_address_id' => Address::factory(),
+            'end_address_id' => Address::factory(),
             'started_at' => $this->faker->date(),
             'distance_km' => $this->faker->numberBetween(1, 1000),
         ];

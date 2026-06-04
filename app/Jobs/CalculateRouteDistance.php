@@ -28,14 +28,22 @@ class CalculateRouteDistance implements ShouldQueue
      */
     public function handle(GoogleRouteService $googleRouteService): void
     {
+        $this->route->loadMissing(['startAddress', 'endAddress']);
+
+        if (! $this->route->startAddress || ! $this->route->endAddress) {
+            throw new \RuntimeException('Route addresses are missing.');
+        }
+
         $this->route->update([
             'distance_status' => 'processing',
             'distance_error' => null,
         ]);
 
         $distanceKm = $googleRouteService->getDistanceInKm(
-            $this->route->start_address,
-            $this->route->end_address,
+            $this->route->startAddress->formatted_address,
+            $this->route->endAddress->formatted_address,
+            $this->route->startAddress->place_id,
+            $this->route->endAddress->place_id,
         );
 
         $this->route->update([

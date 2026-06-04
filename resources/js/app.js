@@ -16,7 +16,7 @@ const state = {
         search: '',
         min_distance: '',
         max_distance: '',
-        sort: '-started_at',
+        sort: '-created_at',
         page: 1,
     },
     report: {
@@ -31,6 +31,11 @@ const state = {
 };
 
 let pollTimer = null;
+
+const addressAutocomplete = {
+    start: { timer: null, requestId: 0, sessionToken: null },
+    end: { timer: null, requestId: 0, sessionToken: null },
+};
 
 const statusLabels = {
     pending: 'В очереди',
@@ -229,7 +234,7 @@ function renderAuth() {
         <main class="auth-shell">
             <section class="auth-visual-panel" aria-label="Droppie">
                 <div class="brand-row">
-                    <span class="brand-mark">DT</span>
+                    <span class="brand-mark">D</span>
                     <span class="brand-name">Droppie</span>
                 </div>
                 <div class="route-visual" aria-hidden="true">
@@ -338,13 +343,25 @@ function renderDashboard() {
                             ${editing ? '<button type="button" class="text-action" data-action="cancel-edit">Отмена</button>' : ''}
                         </div>
                         <form id="route-form" class="stacked-form">
-                            <label>
+                            <label class="address-field">
                                 <span>Откуда</span>
-                                <input name="start_address" type="text" required maxlength="255" value="${escapeHtml(editing?.start_address || '')}">
+                                <div class="address-input-wrap">
+                                    <input name="start_address_display" data-address-input="start" type="text" required maxlength="255" autocomplete="off" placeholder="Улица, дом, город" value="${escapeHtml(editing?.start_address || '')}">
+                                    <input name="start_place_id" data-address-place-id="start" type="hidden" value="${escapeHtml(editing?.start_place_id || '')}">
+                                    <input name="start_address_session_token" data-address-session-token="start" type="hidden" value="">
+                                    <div class="address-suggestions" data-address-suggestions="start" hidden></div>
+                                </div>
+                                <small class="address-hint" data-address-hint="start">${escapeHtml(addressHint(editing, 'start'))}</small>
                             </label>
-                            <label>
+                            <label class="address-field">
                                 <span>Куда</span>
-                                <input name="end_address" type="text" required maxlength="255" value="${escapeHtml(editing?.end_address || '')}">
+                                <div class="address-input-wrap">
+                                    <input name="end_address_display" data-address-input="end" type="text" required maxlength="255" autocomplete="off" placeholder="Улица, дом, город" value="${escapeHtml(editing?.end_address || '')}">
+                                    <input name="end_place_id" data-address-place-id="end" type="hidden" value="${escapeHtml(editing?.end_place_id || '')}">
+                                    <input name="end_address_session_token" data-address-session-token="end" type="hidden" value="">
+                                    <div class="address-suggestions" data-address-suggestions="end" hidden></div>
+                                </div>
+                                <small class="address-hint" data-address-hint="end">${escapeHtml(addressHint(editing, 'end'))}</small>
                             </label>
                             <label>
                                 <span>Дата поездки</span>
@@ -511,6 +528,14 @@ function sortOption(value, label) {
     return `<option value="${value}" ${state.filters.sort === value ? 'selected' : ''}>${label}</option>`;
 }
 
+function addressHint(route, prefix) {
+    if (!route?.[`${prefix}_place_id`]) {
+        return '';
+    }
+
+    return [route[`${prefix}_postal_code`], route[`${prefix}_city`]].filter(Boolean).join(', ');
+}
+
 function renderRoutes() {
     if (!state.routes.length) {
         return `
@@ -580,6 +605,7 @@ function wireDashboard() {
     root.querySelector('#profile-form')?.addEventListener('submit', handleProfileSubmit);
     root.querySelector('#filter-form')?.addEventListener('submit', handleFilterSubmit);
     root.querySelector('#report-form')?.addEventListener('submit', handleReportSubmit);
+    wireAddressAutocomplete();
 
     root.querySelectorAll('[data-action]').forEach((element) => {
         element.addEventListener('click', handleActionClick);
@@ -591,6 +617,160 @@ function wireDashboard() {
             await refreshRoutes();
         });
     });
+}
+
+function wireAddressAutocomplete() {
+    root.querySelectorAll('[data-address-input]').forEach((input) => {
+        input.addEventListener('input', () => handleAddressInput(input));
+        input.addEventListener('blur', () => {
+            window.setTimeout(() => hideAddressSuggestions(input.dataset.addressInput), 160);
+        });
+    });
+}
+
+function handleAddressInput(input) {
+    const field = input.dataset.addressInput;
+    const lookup = addressAutocomplete[field];
+    const query = input.value.trim();
+
+    root.querySelector(`[data-address-place-id="${field}"]`).value = '';
+    root.querySelector(`[data-address-session-token="${field}"]`).value = '';
+    setAddressHint(field, query ? 'Выберите адрес из списка.' : '');
+
+    clearTimeout(lookup.timer);
+
+    if (query.length < 3) {
+        hideAddressSuggestions(field);
+        return;
+    }
+
+    if (!lookup.sessionToken) {
+        lookup.sessionToken = createAddressSessionToken();
+    }
+
+    lookup.timer = window.setTimeout(() => {
+        fetchAddressSuggestions(field, query);
+    }, 260);
+}
+
+async function fetchAddressSuggestions(field, query) {
+    const lookup = addressAutocomplete[field];
+    const requestId = ++lookup.requestId;
+    const params = new URLSearchParams({
+        input: query,
+        session_token: lookup.sessionToken,
+    });
+
+    setAddressHint(field, 'Ищу адрес...');
+
+    try {
+        const payload = await requestJson(`/addresses/autocomplete?${params.toString()}`);
+
+        if (requestId !== lookup.requestId) {
+            return;
+        }
+
+        renderAddressSuggestions(field, payload.data || []);
+        setAddressHint(field, payload.data?.length ? 'Выберите точное совпадение.' : 'Адрес не найден.');
+    } catch (error) {
+        if (requestId !== lookup.requestId) {
+            return;
+        }
+
+        hideAddressSuggestions(field);
+        setAddressHint(field, error.message, 'error');
+    }
+}
+
+function renderAddressSuggestions(field, suggestions) {
+    const container = root.querySelector(`[data-address-suggestions="${field}"]`);
+
+    if (!container) {
+        return;
+    }
+
+    if (!suggestions.length) {
+        container.hidden = true;
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = suggestions.map((suggestion, index) => `
+        <button type="button" data-address-suggestion="${index}">
+            <strong>${escapeHtml(suggestion.main_text || suggestion.description)}</strong>
+            ${suggestion.secondary_text ? `<span>${escapeHtml(suggestion.secondary_text)}</span>` : ''}
+        </button>
+    `).join('');
+    container.hidden = false;
+
+    container.querySelectorAll('[data-address-suggestion]').forEach((button) => {
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => {
+            const suggestion = suggestions[Number(button.dataset.addressSuggestion)];
+            selectAddressSuggestion(field, suggestion);
+        });
+    });
+}
+
+async function selectAddressSuggestion(field, suggestion) {
+    const lookup = addressAutocomplete[field];
+    const input = root.querySelector(`[data-address-input="${field}"]`);
+    const placeId = root.querySelector(`[data-address-place-id="${field}"]`);
+    const sessionToken = root.querySelector(`[data-address-session-token="${field}"]`);
+
+    input.value = suggestion.description;
+    placeId.value = '';
+    sessionToken.value = lookup.sessionToken || '';
+    hideAddressSuggestions(field);
+    setAddressHint(field, 'Проверяю адрес...');
+
+    try {
+        const payload = await requestJson('/addresses/validate', {
+            method: 'POST',
+            body: JSON.stringify({
+                place_id: suggestion.place_id,
+                session_token: lookup.sessionToken,
+            }),
+        });
+
+        input.value = payload.data.formatted_address;
+        placeId.value = payload.data.place_id;
+        setAddressHint(field, [payload.data.postal_code, payload.data.city].filter(Boolean).join(', '), 'success');
+        lookup.sessionToken = null;
+    } catch (error) {
+        placeId.value = '';
+        setAddressHint(field, error.message, 'error');
+    }
+}
+
+function hideAddressSuggestions(field) {
+    const container = root.querySelector(`[data-address-suggestions="${field}"]`);
+
+    if (!container) {
+        return;
+    }
+
+    container.hidden = true;
+    container.innerHTML = '';
+}
+
+function setAddressHint(field, text, type = '') {
+    const hint = root.querySelector(`[data-address-hint="${field}"]`);
+
+    if (!hint) {
+        return;
+    }
+
+    hint.textContent = text || '';
+    hint.dataset.state = type;
+}
+
+function createAddressSessionToken() {
+    if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID();
+    }
+
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 async function handleAuthSubmit(event) {
@@ -634,11 +814,28 @@ async function handleRouteSubmit(event) {
     event.preventDefault();
     clearFlash();
     const formData = new FormData(event.currentTarget);
+    const startPlaceId = String(formData.get('start_place_id') || '').trim();
+    const endPlaceId = String(formData.get('end_place_id') || '').trim();
+
+    if (!startPlaceId || !endPlaceId) {
+        setFlash('error', 'Выберите точные адреса отправления и назначения из списка подсказок.');
+        renderDashboard();
+        return;
+    }
+
     const payload = {
-        start_address: String(formData.get('start_address') || '').trim(),
-        end_address: String(formData.get('end_address') || '').trim(),
         started_at: String(formData.get('started_at') || '').trim(),
     };
+
+    if (!state.editingRoute || startPlaceId !== String(state.editingRoute.start_place_id || '')) {
+        payload.start_place_id = startPlaceId;
+        payload.start_address_session_token = String(formData.get('start_address_session_token') || '').trim();
+    }
+
+    if (!state.editingRoute || endPlaceId !== String(state.editingRoute.end_place_id || '')) {
+        payload.end_place_id = endPlaceId;
+        payload.end_address_session_token = String(formData.get('end_address_session_token') || '').trim();
+    }
 
     state.routeLoading = true;
     renderDashboard();
@@ -714,7 +911,7 @@ async function handleFilterSubmit(event) {
         search: String(formData.get('search') || '').trim(),
         min_distance: String(formData.get('min_distance') || '').trim(),
         max_distance: String(formData.get('max_distance') || '').trim(),
-        sort: String(formData.get('sort') || '-started_at'),
+        sort: String(formData.get('sort') || '-created_at'),
         page: 1,
     };
 
@@ -789,7 +986,7 @@ async function handleActionClick(event) {
             search: '',
             min_distance: '',
             max_distance: '',
-            sort: '-started_at',
+            sort: '-created_at',
             page: 1,
         };
         await refreshRoutes();

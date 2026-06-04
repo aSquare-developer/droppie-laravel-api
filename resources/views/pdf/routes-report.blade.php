@@ -75,8 +75,8 @@
             @forelse ($routes as $route)
                 <tr>
                     <td>{{ $route->started_at->format('d.m.Y') }}</td>
-                    <td>{{ $route->start_address }}</td>
-                    <td>{{ $route->end_address }}</td>
+                    <td>{{ $route->startAddress?->formatted_address }}</td>
+                    <td>{{ $route->endAddress?->formatted_address }}</td>
                     <td>{{ $route->distance_km }} km</td>
                 </tr>
             @empty

@@ -23,9 +23,26 @@ class StoreRouteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'start_address' => ['required', 'string', 'max:255'],
-            'end_address' => ['required', 'string', 'max:255'],
+            'start_place_id' => ['required', 'string', 'max:255'],
+            'end_place_id' => ['required', 'string', 'max:255'],
+            'start_address' => ['prohibited'],
+            'end_address' => ['prohibited'],
+            'start_address_session_token' => ['nullable', 'string', 'max:128'],
+            'end_address_session_token' => ['nullable', 'string', 'max:128'],
             'started_at' => ['required', 'date'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'start_place_id.required' => 'Выберите точный адрес отправления из списка подсказок.',
+            'end_place_id.required' => 'Выберите точный адрес назначения из списка подсказок.',
+            'start_address.prohibited' => 'Адрес отправления нельзя отправлять произвольной строкой. Выберите адрес из подсказок.',
+            'end_address.prohibited' => 'Адрес назначения нельзя отправлять произвольной строкой. Выберите адрес из подсказок.',
         ];
     }
 }

@@ -2,30 +2,61 @@
 
 namespace App\Services;
 
+use App\Exceptions\AddressLookupException;
+use App\Exceptions\InvalidAddressException;
+use App\Jobs\CalculateRouteDistance;
+use App\Models\Address;
 use App\Models\Route;
 use App\Models\User;
-
-use App\Jobs\CalculateRouteDistance;
+use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RouteService
 {
-    public function createRoute(User $user, array $data): Route 
+    public function __construct(private readonly GoogleAddressService $addresses)
+    {
+        //
+    }
+
+    public function createRoute(User $user, array $data): Route
     {
         $route = $user->routes()->create([
-            ...$data,
+            ...Arr::only($data, ['started_at']),
+            'start_address_id' => $this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
+            'end_address_id' => $this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
             'distance_status' => 'pending',
         ]);
 
         CalculateRouteDistance::dispatch($route);
 
-        return $route;
+        return $route->load(['startAddress', 'endAddress']);
     }
 
-    public function updateRoute(Route $route, array $data): Route 
+    public function updateRoute(Route $route, array $data): Route
     {
-        $route->fill($data);
+        $payload = Arr::only($data, ['started_at']);
 
-        $addressesChanged = $route->isDirty('start_address') || $route->isDirty('end_address');
+        if (array_key_exists('start_place_id', $data)) {
+            $payload = [
+                ...$payload,
+                'start_address_id' => $this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
+            ];
+        }
+
+        if (array_key_exists('end_place_id', $data)) {
+            $payload = [
+                ...$payload,
+                'end_address_id' => $this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
+            ];
+        }
+
+        $route->fill($payload);
+
+        $addressesChanged = $route->isDirty([
+            'start_address_id',
+            'end_address_id',
+        ]);
 
         if ($addressesChanged) {
             $route->distance_km = null;
@@ -39,11 +70,39 @@ class RouteService
             CalculateRouteDistance::dispatch($route->fresh());
         }
 
-        return $route->fresh();
+        return $route->fresh(['startAddress', 'endAddress']);
     }
 
     public function deleteRoute(Route $route): void
     {
         $route->delete();
+    }
+
+    private function resolveAddress(string $prefix, string $placeId, ?string $sessionToken): Address
+    {
+        try {
+            $address = $this->addresses->validatePlace($placeId, $sessionToken);
+        } catch (InvalidAddressException $exception) {
+            throw ValidationException::withMessages([
+                $prefix.'_place_id' => $exception->getMessage(),
+            ]);
+        } catch (AddressLookupException $exception) {
+            throw new HttpException(503, $exception->getMessage(), $exception);
+        }
+
+        return Address::updateOrCreate(
+            ['place_id' => $address['place_id']],
+            [
+                'formatted_address' => $address['formatted_address'],
+                'postal_code' => $address['postal_code'],
+                'city' => $address['city'],
+                'country' => $address['country'],
+                'country_code' => $address['country_code'],
+                'street' => $address['street'],
+                'street_number' => $address['street_number'],
+                'latitude' => $address['latitude'],
+                'longitude' => $address['longitude'],
+            ]
+        );
     }
 }
