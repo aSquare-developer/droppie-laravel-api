@@ -109,4 +109,4 @@ Create a GitHub Environment named `production` and add these secrets:
 
 Use a dedicated SSH key without a passphrase, store its private half in `DEPLOY_SSH_KEY`, and add its public half to the deploy user's `~/.ssh/authorized_keys`. Generate `DEPLOY_KNOWN_HOSTS` with `ssh-keyscan -H your-server`.
 
-The server must have PHP 8.3+, `rsync`, a configured `.env`, writable `storage` and `bootstrap/cache` directories, and a process manager running Horizon or queue workers.
+The server must have PHP 8.3+, `rsync`, a configured `.env`, and writable `storage` and `bootstrap/cache` directories. Background workers and scheduled tasks are managed separately on the server.
