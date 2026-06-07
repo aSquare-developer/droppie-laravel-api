@@ -109,4 +109,6 @@ Create a GitHub Environment named `production` and add these secrets:
 
 Use a dedicated SSH key without a passphrase. Store the complete multiline private key, including its `BEGIN` and `END` lines, in `DEPLOY_SSH_KEY`, and add its public key to the deploy user's `~/.ssh/authorized_keys`. Set `DEPLOY_KNOWN_HOSTS` to the output of `ssh-keyscan -p your-port -H your-server`. The host and port must exactly match `DEPLOY_HOST` and `DEPLOY_PORT`.
 
+Verify the key before deploying with `ssh -i ~/.ssh/droppie_deploy -o IdentitiesOnly=yes -p your-port your-user@your-server true`.
+
 The server must have PHP 8.3+, `rsync`, a configured `.env`, and writable `storage` and `bootstrap/cache` directories. Background workers and scheduled tasks are managed separately on the server.

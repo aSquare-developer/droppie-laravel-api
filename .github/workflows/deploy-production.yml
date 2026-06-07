@@ -136,6 +136,9 @@ jobs:
             exit 1
           fi
 
+          echo "Deploy key fingerprint:"
+          ssh-keygen -lf ~/.ssh/deploy_key
+
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
@@ -150,6 +153,26 @@ jobs:
             exit 1
           fi
 
+      - name: Verify SSH authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! ssh \
+            -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            true; then
+            echo "::error::The server rejected DEPLOY_SSH_KEY for DEPLOY_USER."
+            echo "::error::Add the matching public key to that user's ~/.ssh/authorized_keys and verify its ownership and permissions."
+            exit 1
+          fi
+
       - name: Upload release
         shell: bash
         run: |
@@ -159,6 +182,7 @@ jobs:
             -i ~/.ssh/deploy_key \
             -o BatchMode=yes \
             -o ConnectTimeout=15 \
+            -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile=~/.ssh/known_hosts \
             -P "$DEPLOY_PORT" \
@@ -174,6 +198,7 @@ jobs:
             -i ~/.ssh/deploy_key \
             -o BatchMode=yes \
             -o ConnectTimeout=15 \
+            -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile=~/.ssh/known_hosts \
             -p "$DEPLOY_PORT" \
