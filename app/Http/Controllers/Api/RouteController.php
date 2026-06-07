@@ -48,7 +48,9 @@ class RouteController extends Controller
             $query->where('distance_km', '<=', $request->max_distance);
         }
 
-        $sort = $request->get('sort', '-started_at');
+        $totalDistanceKm = (float) (clone $query)->sum('distance_km');
+
+        $sort = $request->get('sort', '-created_at');
 
         $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
         $column = ltrim($sort, '-');
@@ -60,7 +62,7 @@ class RouteController extends Controller
         ];
 
         if (! in_array($column, $allowedSorts, true)) {
-            $column = 'started_at';
+            $column = 'created_at';
             $direction = 'desc';
         }
 
@@ -69,7 +71,11 @@ class RouteController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return RouteResource::collection($routes);
+        return RouteResource::collection($routes)->additional([
+            'summary' => [
+                'total_distance_km' => round($totalDistanceKm, 1),
+            ],
+        ]);
     }
 
     /**

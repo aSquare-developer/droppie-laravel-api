@@ -1,6 +1,8 @@
 <?php
 
 use App\Jobs\CalculateRouteDistance;
+use App\Models\Address;
+use App\Models\Route;
 use App\Models\User;
 use App\Services\GoogleAddressService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,6 +111,27 @@ it('stores the trip date and omits comments from route responses', function () {
     ]);
 
     Queue::assertPushed(CalculateRouteDistance::class);
+});
+
+it('returns total distance across all matching routes', function () {
+    $user = User::factory()->create();
+    $startAddress = Address::factory()->create();
+    $endAddress = Address::factory()->create();
+
+    Route::factory()->count(12)->create([
+        'user_id' => $user->id,
+        'start_address_id' => $startAddress->id,
+        'end_address_id' => $endAddress->id,
+        'distance_km' => 2.5,
+        'distance_status' => 'completed',
+    ]);
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->getJson('/api/routes')
+        ->assertOk()
+        ->assertJsonCount(10, 'data')
+        ->assertJsonPath('summary.total_distance_km', 30);
 });
 
 function routeAddress(

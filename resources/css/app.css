@@ -392,6 +392,32 @@ label span {
     gap: 12px;
 }
 
+.report-quick-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.report-quick-actions button {
+    min-width: 0;
+    min-height: 30px;
+    flex: 1 1 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0 8px;
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 750;
+    line-height: 1.15;
+}
+
+.report-quick-actions button:hover {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+    color: var(--brand-dark);
+}
+
 .profile-form-grid {
     display: grid;
     gap: 12px;
@@ -572,7 +598,7 @@ label span {
 
 .metric-strip {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -657,7 +683,7 @@ label span {
 
 .filters-bar {
     display: grid;
-    grid-template-columns: minmax(180px, 1.25fr) minmax(96px, 0.55fr) minmax(96px, 0.55fr) minmax(170px, 0.85fr) auto;
+    grid-template-columns: minmax(240px, 1fr) minmax(190px, 260px) auto;
     gap: 12px;
     align-items: end;
     margin-bottom: 16px;
@@ -933,6 +959,14 @@ label span {
 
     .filter-actions {
         flex-direction: column;
+    }
+
+    .report-quick-actions {
+        flex-wrap: wrap;
+    }
+
+    .report-quick-actions button {
+        flex-basis: 130px;
     }
 
     .route-card-main {

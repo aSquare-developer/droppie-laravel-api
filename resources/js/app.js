@@ -12,10 +12,9 @@ const state = {
     user: readStoredUser(),
     routes: [],
     meta: null,
+    summary: null,
     filters: {
         search: '',
-        min_distance: '',
-        max_distance: '',
         sort: '-created_at',
         page: 1,
     },
@@ -171,6 +170,7 @@ function clearSession() {
     state.user = null;
     state.routes = [];
     state.meta = null;
+    state.summary = null;
     state.editingRoute = null;
     localStorage.removeItem(storageKeys.token);
     localStorage.removeItem(storageKeys.user);
@@ -195,6 +195,7 @@ async function fetchRoutes() {
     const payload = await requestJson(`/routes?${params.toString()}`);
     state.routes = payload.data || [];
     state.meta = payload.meta || null;
+    state.summary = payload.summary || null;
 }
 
 async function boot() {
@@ -329,8 +330,7 @@ function renderDashboard() {
                 </div>
                 <div class="metric-strip">
                     ${renderMetric('Маршрутов', metrics.totalRoutes, 'Всего в фильтре')}
-                    ${renderMetric('Готово', metrics.completedRoutes, 'С рассчитанной дистанцией')}
-                    ${renderMetric('Километров', metrics.pageDistance, 'На текущей странице')}
+                    ${renderMetric('Километров', metrics.totalDistance, 'Всего по маршрутам')}
                     ${renderMetric('В работе', metrics.activeRoutes, 'Очередь и расчет')}
                 </div>
             </section>
@@ -422,6 +422,10 @@ function renderDashboard() {
                         <div class="section-title">
                             <h2>PDF-отчет</h2>
                         </div>
+                        <div class="report-quick-actions">
+                            <button type="button" data-report-period="previous-month">Предыдущий месяц</button>
+                            <button type="button" data-report-period="current-month">Текущий месяц</button>
+                        </div>
                         <form id="report-form" class="compact-form">
                             <label>
                                 <span>С</span>
@@ -448,14 +452,6 @@ function renderDashboard() {
                         <label class="search-field">
                             <span>Поиск</span>
                             <input name="search" type="search" value="${escapeHtml(state.filters.search)}" placeholder="Адрес">
-                        </label>
-                        <label>
-                            <span>Мин. км</span>
-                            <input name="min_distance" type="number" min="0" step="1" value="${escapeHtml(state.filters.min_distance)}">
-                        </label>
-                        <label>
-                            <span>Макс. км</span>
-                            <input name="max_distance" type="number" min="0" step="1" value="${escapeHtml(state.filters.max_distance)}">
                         </label>
                         <label>
                             <span>Сортировка</span>
@@ -512,15 +508,13 @@ function renderMetric(label, value, note) {
 }
 
 function getMetrics() {
-    const completedRoutes = state.routes.filter((route) => routeStatus(route) === 'completed').length;
     const activeRoutes = state.routes.filter((route) => ['pending', 'processing'].includes(routeStatus(route))).length;
-    const pageDistance = state.routes.reduce((sum, route) => sum + Number(route.distance_km || 0), 0);
+    const totalDistance = Number(state.summary?.total_distance_km || 0);
 
     return {
         totalRoutes: state.meta?.total ?? state.routes.length,
-        completedRoutes,
         activeRoutes,
-        pageDistance: Number(pageDistance.toFixed(1)).toLocaleString('ru-RU'),
+        totalDistance: Number(totalDistance.toFixed(1)).toLocaleString('ru-RU'),
     };
 }
 
@@ -606,6 +600,10 @@ function wireDashboard() {
     root.querySelector('#filter-form')?.addEventListener('submit', handleFilterSubmit);
     root.querySelector('#report-form')?.addEventListener('submit', handleReportSubmit);
     wireAddressAutocomplete();
+
+    root.querySelectorAll('[data-report-period]').forEach((button) => {
+        button.addEventListener('click', handleQuickReportDownload);
+    });
 
     root.querySelectorAll('[data-action]').forEach((element) => {
         element.addEventListener('click', handleActionClick);
@@ -909,8 +907,6 @@ async function handleFilterSubmit(event) {
     const formData = new FormData(event.currentTarget);
     state.filters = {
         search: String(formData.get('search') || '').trim(),
-        min_distance: String(formData.get('min_distance') || '').trim(),
-        max_distance: String(formData.get('max_distance') || '').trim(),
         sort: String(formData.get('sort') || '-created_at'),
         page: 1,
     };
@@ -923,10 +919,21 @@ async function handleReportSubmit(event) {
     clearFlash();
 
     const formData = new FormData(event.currentTarget);
-    state.report = {
+    await downloadReport({
         from: String(formData.get('from') || ''),
         to: String(formData.get('to') || ''),
-    };
+    });
+}
+
+async function handleQuickReportDownload(event) {
+    clearFlash();
+
+    const period = event.currentTarget.dataset.reportPeriod;
+    await downloadReport(period === 'previous-month' ? monthReportRange(-1) : monthReportRange(0));
+}
+
+async function downloadReport(report) {
+    state.report = report;
 
     try {
         const params = new URLSearchParams(state.report);
@@ -960,6 +967,19 @@ async function handleReportSubmit(event) {
     }
 }
 
+function monthReportRange(offset) {
+    const today = new Date();
+    const from = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+    const to = offset === 0
+        ? today
+        : new Date(today.getFullYear(), today.getMonth() + offset + 1, 0);
+
+    return {
+        from: dateInput(from),
+        to: dateInput(to),
+    };
+}
+
 async function handleActionClick(event) {
     const action = event.currentTarget.dataset.action;
 
@@ -984,8 +1004,6 @@ async function handleActionClick(event) {
     if (action === 'reset-filters') {
         state.filters = {
             search: '',
-            min_distance: '',
-            max_distance: '',
             sort: '-created_at',
             page: 1,
         };
