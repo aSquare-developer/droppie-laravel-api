@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('distance_error')->nullable();
         });
     }
+
     /**
      * Reverse the migrations.
      */

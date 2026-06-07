@@ -2,13 +2,9 @@
 
 namespace App\Listeners;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
-
 use App\Events\RouteCreated;
-use Illuminate\Support\Facades\Log;
-
 use App\Jobs\ProcessRouteCreated;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class LogRouteCreated implements ShouldQueue
 {

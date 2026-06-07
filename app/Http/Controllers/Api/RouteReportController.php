@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\RouteReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-use Carbon\Carbon;
-
 class RouteReportController extends Controller
 {
-    public function download(Request $request, RouteReportService $routeReportService): Response 
+    public function download(Request $request, RouteReportService $routeReportService): Response
     {
         $validated = $request->validate([
             'from' => ['required', 'date'],
@@ -39,7 +38,7 @@ class RouteReportController extends Controller
         ]);
 
         return $pdf->download(
-            'routes-report-' . $fromFormatted . '-' . $toFormatted . '.pdf'
+            'routes-report-'.$fromFormatted.'-'.$toFormatted.'.pdf'
         );
     }
 }

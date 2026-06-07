@@ -95,3 +95,18 @@ vendor/bin/pest
 vendor/bin/pint --test
 npm run build
 ```
+
+## Production Deployment
+
+Pushes to `main` run tests, build a production release, and deploy it through `.github/workflows/deploy-production.yml`.
+
+Create a GitHub Environment named `production` and add these secrets:
+
+- `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`
+- `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`
+- `DEPLOY_PORT` (optional, defaults to `22`)
+- `PRODUCTION_URL` (optional health check URL)
+
+Use a dedicated SSH key without a passphrase, store its private half in `DEPLOY_SSH_KEY`, and add its public half to the deploy user's `~/.ssh/authorized_keys`. Generate `DEPLOY_KNOWN_HOSTS` with `ssh-keyscan -H your-server`.
+
+The server must have PHP 8.3+, `rsync`, a configured `.env`, writable `storage` and `bootstrap/cache` directories, and a process manager running Horizon or queue workers.

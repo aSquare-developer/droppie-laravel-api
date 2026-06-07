@@ -303,7 +303,6 @@ function renderAuth() {
 }
 
 function renderDashboard() {
-    const metrics = getMetrics();
     const editing = state.editingRoute;
 
     root.innerHTML = `
@@ -329,9 +328,7 @@ function renderDashboard() {
                     <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="metric-strip">
-                    ${renderMetric('Routes', metrics.totalRoutes, 'Total matching routes')}
-                    ${renderMetric('Kilometers', metrics.totalDistance, 'Total route distance')}
-                    ${renderMetric('In progress', metrics.activeRoutes, 'Queued and calculating')}
+                    ${renderMetrics()}
                 </div>
             </section>
 
@@ -444,7 +441,7 @@ function renderDashboard() {
                     <div class="section-title list-title">
                         <div>
                             <h2>Routes</h2>
-                            <p>${state.meta?.total ?? state.routes.length} records</p>
+                            <p data-route-count>${renderRouteCount()}</p>
                         </div>
                     </div>
 
@@ -474,7 +471,9 @@ function renderDashboard() {
                         ${state.loading ? renderLoadingRows() : renderRoutes()}
                     </div>
 
-                    ${renderPagination()}
+                    <div data-pagination>
+                        ${renderPagination()}
+                    </div>
                 </section>
             </section>
         </main>
@@ -507,6 +506,16 @@ function renderMetric(label, value, note) {
     `;
 }
 
+function renderMetrics() {
+    const metrics = getMetrics();
+
+    return [
+        renderMetric('Routes', metrics.totalRoutes, 'Total matching routes'),
+        renderMetric('Kilometers', metrics.totalDistance, 'Total route distance'),
+        renderMetric('In progress', metrics.activeRoutes, 'Queued and calculating'),
+    ].join('');
+}
+
 function getMetrics() {
     const activeRoutes = state.routes.filter((route) => ['pending', 'processing'].includes(routeStatus(route))).length;
     const totalDistance = Number(state.summary?.total_distance_km || 0);
@@ -516,6 +525,10 @@ function getMetrics() {
         activeRoutes,
         totalDistance: Number(totalDistance.toFixed(1)).toLocaleString('en-US'),
     };
+}
+
+function renderRouteCount() {
+    return `${state.meta?.total ?? state.routes.length} records`;
 }
 
 function sortOption(value, label) {
@@ -605,16 +618,42 @@ function wireDashboard() {
         button.addEventListener('click', handleQuickReportDownload);
     });
 
-    root.querySelectorAll('[data-action]').forEach((element) => {
+    root.querySelectorAll('[data-action]:not([data-action="edit-route"]):not([data-action="delete-route"])').forEach((element) => {
         element.addEventListener('click', handleActionClick);
     });
 
-    root.querySelectorAll('[data-page]').forEach((button) => {
+    wireRouteResultControls();
+}
+
+function wireRouteResultControls() {
+    root.querySelectorAll('.routes-list [data-action]').forEach((element) => {
+        element.addEventListener('click', handleActionClick);
+    });
+
+    root.querySelectorAll('[data-pagination] [data-page]').forEach((button) => {
         button.addEventListener('click', async () => {
             state.filters.page = Number(button.dataset.page);
             await refreshRoutes();
         });
     });
+}
+
+function updateRouteResults() {
+    const metricStrip = root.querySelector('.metric-strip');
+    const routeCount = root.querySelector('[data-route-count]');
+    const routesList = root.querySelector('.routes-list');
+    const pagination = root.querySelector('[data-pagination]');
+
+    if (!metricStrip || !routeCount || !routesList || !pagination) {
+        return;
+    }
+
+    metricStrip.innerHTML = renderMetrics();
+    routeCount.textContent = renderRouteCount();
+    routesList.innerHTML = renderRoutes();
+    pagination.innerHTML = renderPagination();
+
+    wireRouteResultControls();
 }
 
 function wireAddressAutocomplete() {
@@ -1078,10 +1117,17 @@ function schedulePolling() {
         try {
             await fetchRoutes();
         } catch {
+            if (!state.token) {
+                renderAuth();
+                return;
+            }
+
+            schedulePolling();
             return;
         }
 
-        renderDashboard();
+        updateRouteResults();
+        schedulePolling();
     }, 8000);
 }
 
