@@ -2,6 +2,8 @@
 
 Droppie Track is a Laravel application for tracking driving routes. Users select validated Google addresses, and route distances are calculated asynchronously with Google Routes API.
 
+Test application: [https://droppie.asquare.ee/](https://droppie.asquare.ee/)
+
 ## Features
 
 - Laravel Sanctum authentication
