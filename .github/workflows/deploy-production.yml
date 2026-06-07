@@ -73,14 +73,13 @@ jobs:
             --exclude="tests" \
             --exclude="storage" \
             --exclude="bootstrap/cache" \
-            --exclude="release.tar.gz" \
-            -czf release.tar.gz .
+            -czf "$RUNNER_TEMP/release.tar.gz" .
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
         with:
           name: production-release
-          path: release.tar.gz
+          path: ${{ runner.temp }}/release.tar.gz
           if-no-files-found: error
           retention-days: 1
 
