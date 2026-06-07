@@ -1,0 +1,245 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  PHP_VERSION: "8.3"
+  NODE_VERSION: "22"
+
+jobs:
+  ci:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, dom, curl, zip, pdo_sqlite
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Check PHP formatting
+        run: vendor/bin/pint --test
+
+      - name: Run tests
+        run: vendor/bin/pest
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Prepare production dependencies
+        run: composer install --no-dev --classmap-authoritative --no-interaction --prefer-dist --no-progress
+
+      - name: Package release
+        run: |
+          tar \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude=".env" \
+            --exclude="node_modules" \
+            --exclude="tests" \
+            --exclude="storage" \
+            --exclude="bootstrap/cache" \
+            --exclude="release.tar.gz" \
+            -czf release.tar.gz .
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-release
+          path: release.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    name: Deploy
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: production-release
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::GitHub secret ${name} is not configured."
+              exit 1
+            fi
+          done
+
+          if [[ -z "$DEPLOY_PORT" ]]; then
+            echo "DEPLOY_PORT=22" >> "$GITHUB_ENV"
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scp \
+            -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -P "$DEPLOY_PORT" \
+            release.tar.gz \
+            "$DEPLOY_USER@$DEPLOY_HOST:/tmp/droppie-$GITHUB_SHA.tar.gz"
+
+      - name: Activate release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            bash -se -- "$DEPLOY_PATH" "/tmp/droppie-$GITHUB_SHA.tar.gz" <<'DEPLOY_SCRIPT'
+          set -euo pipefail
+
+          DEPLOY_PATH="$1"
+          RELEASE_ARCHIVE="$2"
+          WORK_DIR="$(mktemp -d)"
+
+          cleanup() {
+            rm -rf "$WORK_DIR" "$RELEASE_ARCHIVE"
+          }
+
+          restore_application() {
+            cd "$DEPLOY_PATH"
+            php artisan up || true
+            cleanup
+          }
+
+          trap cleanup EXIT
+
+          if [[ "$DEPLOY_PATH" != /* || "$DEPLOY_PATH" == "/" ]]; then
+            echo "Deploy path must be an absolute application directory and cannot be /."
+            exit 1
+          fi
+
+          if [[ ! -d "$DEPLOY_PATH" ]]; then
+            echo "Deploy path does not exist: $DEPLOY_PATH"
+            exit 1
+          fi
+
+          if [[ ! -f "$DEPLOY_PATH/.env" ]]; then
+            echo "Production .env is missing: $DEPLOY_PATH/.env"
+            exit 1
+          fi
+
+          if [[ ! -f "$RELEASE_ARCHIVE" ]]; then
+            echo "Release archive does not exist: $RELEASE_ARCHIVE"
+            exit 1
+          fi
+
+          command -v php >/dev/null
+          command -v rsync >/dev/null
+          command -v tar >/dev/null
+
+          tar -xzf "$RELEASE_ARCHIVE" -C "$WORK_DIR"
+
+          cd "$DEPLOY_PATH"
+          php artisan down --retry=60 || true
+          trap restore_application EXIT
+
+          rsync -a --delete \
+            --exclude=".env*" \
+            --exclude=".git/" \
+            --exclude="storage/" \
+            --exclude="public/storage" \
+            --exclude="public/.well-known/" \
+            --exclude="bootstrap/cache/" \
+            "$WORK_DIR/" "$DEPLOY_PATH/"
+
+          mkdir -p \
+            storage/framework/cache/data \
+            storage/framework/sessions \
+            storage/framework/views \
+            storage/logs \
+            bootstrap/cache
+
+          php artisan optimize:clear
+          php artisan migrate --force
+          php artisan storage:link || true
+          php artisan optimize
+          php artisan horizon:terminate || true
+          php artisan queue:restart || true
+          php artisan up
+
+          trap - EXIT
+          cleanup
+          DEPLOY_SCRIPT
+
+      - name: Check application health
+        if: ${{ env.PRODUCTION_URL != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent \
+            --retry 5 \
+            --retry-delay 5 \
+            --max-time 20 \
+            "${PRODUCTION_URL%/}/up"

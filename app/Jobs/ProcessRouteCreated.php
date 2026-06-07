@@ -14,7 +14,7 @@ class ProcessRouteCreated implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(Public Route $route)
+    public function __construct(public Route $route)
     {
         //
     }

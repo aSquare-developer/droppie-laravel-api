@@ -2,14 +2,15 @@
 
 namespace App\Providers;
 
+use App\Events\RouteCreated;
+use App\Listeners\LogRouteCreated;
 use Illuminate\Support\ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
 {
-
     protected $listen = [
-        \App\Events\RouteCreated::class => [
-            \App\Listeners\LogRouteCreated::class,
+        RouteCreated::class => [
+            LogRouteCreated::class,
         ],
     ];
 
