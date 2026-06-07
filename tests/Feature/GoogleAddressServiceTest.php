@@ -47,7 +47,7 @@ it('rejects a google place without required address components', function () {
     ]);
 
     expect(fn () => app(GoogleAddressService::class)->validatePlace('place-1'))
-        ->toThrow(InvalidAddressException::class, 'почтовый индекс');
+        ->toThrow(InvalidAddressException::class, 'postal code');
 });
 
 function googlePlaceResult(): array

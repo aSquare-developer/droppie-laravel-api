@@ -37,10 +37,10 @@ const addressAutocomplete = {
 };
 
 const statusLabels = {
-    pending: 'В очереди',
-    processing: 'Считается',
-    completed: 'Готов',
-    failed: 'Ошибка',
+    pending: 'Queued',
+    processing: 'Calculating',
+    completed: 'Completed',
+    failed: 'Failed',
 };
 
 function readStoredUser() {
@@ -73,17 +73,17 @@ function escapeHtml(value) {
 
 function formatDistance(value) {
     if (value === null || value === undefined || value === '') {
-        return 'не готово';
+        return 'Not available';
     }
 
-    return `${Number(value).toLocaleString('ru-RU', {
+    return `${Number(value).toLocaleString('en-US', {
         maximumFractionDigits: 1,
-    })} км`;
+    })} km`;
 }
 
 function formatDateOnly(value) {
     if (!value) {
-        return 'нет даты';
+        return 'No date';
     }
 
     const parts = String(value).split('-').map(Number);
@@ -92,10 +92,10 @@ function formatDateOnly(value) {
         : new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-        return 'нет даты';
+        return 'No date';
     }
 
-    return new Intl.DateTimeFormat('ru-RU', {
+    return new Intl.DateTimeFormat('en-US', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -150,7 +150,7 @@ async function requestJson(path, options = {}, withAuth = true) {
     return payload;
 }
 
-function readError(payload, fallback = 'Не удалось выполнить запрос') {
+function readError(payload, fallback = 'Unable to complete the request') {
     if (payload?.errors) {
         return Object.values(payload.errors).flat().join(' ');
     }
@@ -245,12 +245,12 @@ function renderAuth() {
                     <span class="route-stop route-stop-end"></span>
                 </div>
                 <div class="auth-copy">
-                    <h1>Рабочий кабинет маршрутов</h1>
-                    <p>Контроль адресов, расстояний и отчетов в одном web-интерфейсе.</p>
+                    <h1>Route management dashboard</h1>
+                    <p>Manage addresses, distances, and reports in one web interface.</p>
                 </div>
             </section>
 
-            <section class="auth-card" aria-label="Авторизация">
+            <section class="auth-card" aria-label="Authentication">
                 <div class="mobile-brand">
                     <span class="brand-mark">DT</span>
                     <span class="brand-name">Droppie</span>
@@ -258,15 +258,15 @@ function renderAuth() {
 
                 ${renderFlash()}
 
-                <div class="segmented" role="tablist" aria-label="Режим авторизации">
-                    <button type="button" class="${state.authMode === 'login' ? 'active' : ''}" data-auth-mode="login">Вход</button>
-                    <button type="button" class="${isRegister ? 'active' : ''}" data-auth-mode="register">Регистрация</button>
+                <div class="segmented" role="tablist" aria-label="Authentication mode">
+                    <button type="button" class="${state.authMode === 'login' ? 'active' : ''}" data-auth-mode="login">Sign in</button>
+                    <button type="button" class="${isRegister ? 'active' : ''}" data-auth-mode="register">Register</button>
                 </div>
 
                 <form id="auth-form" class="stacked-form">
                     ${isRegister ? `
                         <label>
-                            <span>Имя</span>
+                            <span>Name</span>
                             <input name="name" type="text" autocomplete="name" required>
                         </label>
                     ` : ''}
@@ -275,11 +275,11 @@ function renderAuth() {
                         <input name="email" type="email" autocomplete="email" required>
                     </label>
                     <label>
-                        <span>Пароль</span>
+                        <span>Password</span>
                         <input name="password" type="password" autocomplete="${isRegister ? 'new-password' : 'current-password'}" required minlength="6">
                     </label>
                     <button class="primary-action" type="submit" ${state.loading ? 'disabled' : ''}>
-                        ${state.loading ? 'Подождите...' : isRegister ? 'Создать аккаунт' : 'Войти'}
+                        ${state.loading ? 'Please wait...' : isRegister ? 'Create account' : 'Sign in'}
                     </button>
                 </form>
             </section>
@@ -317,21 +317,21 @@ function renderDashboard() {
                     </div>
                 </div>
                 <div class="user-block">
-                    <span>${escapeHtml(state.user?.name || 'Пользователь')}</span>
-                    <button type="button" class="ghost-action" data-action="logout">Выйти</button>
+                    <span>${escapeHtml(state.user?.name || 'User')}</span>
+                    <button type="button" class="ghost-action" data-action="logout">Log out</button>
                 </div>
             </header>
 
             ${renderFlash()}
 
-            <section class="overview-band" aria-label="Обзор маршрутов">
+            <section class="overview-band" aria-label="Route overview">
                 <div class="route-ribbon" aria-hidden="true">
                     <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="metric-strip">
-                    ${renderMetric('Маршрутов', metrics.totalRoutes, 'Всего в фильтре')}
-                    ${renderMetric('Километров', metrics.totalDistance, 'Всего по маршрутам')}
-                    ${renderMetric('В работе', metrics.activeRoutes, 'Очередь и расчет')}
+                    ${renderMetric('Routes', metrics.totalRoutes, 'Total matching routes')}
+                    ${renderMetric('Kilometers', metrics.totalDistance, 'Total route distance')}
+                    ${renderMetric('In progress', metrics.activeRoutes, 'Queued and calculating')}
                 </div>
             </section>
 
@@ -339,14 +339,14 @@ function renderDashboard() {
                 <aside class="control-panel">
                     <section class="panel-section">
                         <div class="section-title">
-                            <h2>${editing ? 'Редактировать маршрут' : 'Новый маршрут'}</h2>
-                            ${editing ? '<button type="button" class="text-action" data-action="cancel-edit">Отмена</button>' : ''}
+                            <h2>${editing ? 'Edit route' : 'New route'}</h2>
+                            ${editing ? '<button type="button" class="text-action" data-action="cancel-edit">Cancel</button>' : ''}
                         </div>
                         <form id="route-form" class="stacked-form">
                             <label class="address-field">
-                                <span>Откуда</span>
+                                <span>From</span>
                                 <div class="address-input-wrap">
-                                    <input name="start_address_display" data-address-input="start" type="text" required maxlength="255" autocomplete="off" placeholder="Улица, дом, город" value="${escapeHtml(editing?.start_address || '')}">
+                                    <input name="start_address_display" data-address-input="start" type="text" required maxlength="255" autocomplete="off" placeholder="Street, building number, city" value="${escapeHtml(editing?.start_address || '')}">
                                     <input name="start_place_id" data-address-place-id="start" type="hidden" value="${escapeHtml(editing?.start_place_id || '')}">
                                     <input name="start_address_session_token" data-address-session-token="start" type="hidden" value="">
                                     <div class="address-suggestions" data-address-suggestions="start" hidden></div>
@@ -354,9 +354,9 @@ function renderDashboard() {
                                 <small class="address-hint" data-address-hint="start">${escapeHtml(addressHint(editing, 'start'))}</small>
                             </label>
                             <label class="address-field">
-                                <span>Куда</span>
+                                <span>To</span>
                                 <div class="address-input-wrap">
-                                    <input name="end_address_display" data-address-input="end" type="text" required maxlength="255" autocomplete="off" placeholder="Улица, дом, город" value="${escapeHtml(editing?.end_address || '')}">
+                                    <input name="end_address_display" data-address-input="end" type="text" required maxlength="255" autocomplete="off" placeholder="Street, building number, city" value="${escapeHtml(editing?.end_address || '')}">
                                     <input name="end_place_id" data-address-place-id="end" type="hidden" value="${escapeHtml(editing?.end_place_id || '')}">
                                     <input name="end_address_session_token" data-address-session-token="end" type="hidden" value="">
                                     <div class="address-suggestions" data-address-suggestions="end" hidden></div>
@@ -364,78 +364,78 @@ function renderDashboard() {
                                 <small class="address-hint" data-address-hint="end">${escapeHtml(addressHint(editing, 'end'))}</small>
                             </label>
                             <label>
-                                <span>Дата поездки</span>
+                                <span>Trip date</span>
                                 <input name="started_at" type="date" required value="${escapeHtml(editing?.started_at || dateInput(new Date()))}">
                             </label>
                             <button class="primary-action" type="submit" ${state.routeLoading ? 'disabled' : ''}>
-                                ${state.routeLoading ? 'Сохраняю...' : editing ? 'Сохранить' : 'Добавить маршрут'}
+                                ${state.routeLoading ? 'Saving...' : editing ? 'Save' : 'Add route'}
                             </button>
                         </form>
                     </section>
 
                     <section class="panel-section">
                         <div class="section-title">
-                            <h2>Профиль</h2>
+                            <h2>Profile</h2>
                         </div>
                         <form id="profile-form" class="stacked-form profile-form">
                             <div class="profile-form-grid">
                                 <label>
-                                    <span>Имя</span>
+                                    <span>First name</span>
                                     <input name="name" type="text" autocomplete="given-name" required maxlength="255" value="${escapeHtml(state.user?.name || '')}">
                                 </label>
                                 <label>
-                                    <span>Фамилия</span>
+                                    <span>Last name</span>
                                     <input name="last_name" type="text" autocomplete="family-name" maxlength="255" value="${escapeHtml(state.user?.last_name || '')}">
                                 </label>
                                 <label>
-                                    <span>Электронная почта</span>
+                                    <span>Email</span>
                                     <input type="email" autocomplete="email" readonly aria-readonly="true" class="readonly-field" value="${escapeHtml(state.user?.email || '')}">
                                 </label>
                                 <label>
-                                    <span>Название фирмы</span>
+                                    <span>Company name</span>
                                     <input name="company_name" type="text" autocomplete="organization" maxlength="255" value="${escapeHtml(state.user?.company_name || '')}">
                                 </label>
                                 <label>
-                                    <span>Регистрационный номер авто</span>
+                                    <span>Vehicle registration number</span>
                                     <input name="car_registration_number" type="text" maxlength="50" value="${escapeHtml(state.user?.car_registration_number || '')}">
                                 </label>
                                 <label>
-                                    <span>Марка, модель авто</span>
+                                    <span>Vehicle make and model</span>
                                     <input name="car_make_model" type="text" maxlength="255" value="${escapeHtml(state.user?.car_make_model || '')}">
                                 </label>
                                 <label>
-                                    <span>Пробег авто</span>
+                                    <span>Vehicle mileage</span>
                                     <input name="car_mileage" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(state.user?.car_mileage ?? '')}">
                                 </label>
                                 <label>
-                                    <span>Страна проживания</span>
+                                    <span>Country of residence</span>
                                     <input name="country" type="text" autocomplete="country-name" maxlength="100" value="${escapeHtml(state.user?.country || '')}">
                                 </label>
                             </div>
                             <button class="secondary-action" type="submit" ${state.profileLoading ? 'disabled' : ''}>
-                                ${state.profileLoading ? 'Сохраняю...' : 'Сохранить профиль'}
+                                ${state.profileLoading ? 'Saving...' : 'Save profile'}
                             </button>
                         </form>
                     </section>
 
                     <section class="panel-section report-section">
                         <div class="section-title">
-                            <h2>PDF-отчет</h2>
+                            <h2>PDF report</h2>
                         </div>
                         <div class="report-quick-actions">
-                            <button type="button" data-report-period="previous-month">Предыдущий месяц</button>
-                            <button type="button" data-report-period="current-month">Текущий месяц</button>
+                            <button type="button" data-report-period="previous-month">Previous month</button>
+                            <button type="button" data-report-period="current-month">Current month</button>
                         </div>
                         <form id="report-form" class="compact-form">
                             <label>
-                                <span>С</span>
+                                <span>From</span>
                                 <input name="from" type="date" value="${escapeHtml(state.report.from)}" required>
                             </label>
                             <label>
-                                <span>По</span>
+                                <span>To</span>
                                 <input name="to" type="date" value="${escapeHtml(state.report.to)}" required>
                             </label>
-                            <button type="submit" class="secondary-action">Скачать PDF</button>
+                            <button type="submit" class="secondary-action">Download PDF</button>
                         </form>
                     </section>
                 </aside>
@@ -443,30 +443,30 @@ function renderDashboard() {
                 <section class="routes-panel">
                     <div class="section-title list-title">
                         <div>
-                            <h2>Маршруты</h2>
-                            <p>${state.meta?.total ?? state.routes.length} записей</p>
+                            <h2>Routes</h2>
+                            <p>${state.meta?.total ?? state.routes.length} records</p>
                         </div>
                     </div>
 
                     <form id="filter-form" class="filters-bar">
                         <label class="search-field">
-                            <span>Поиск</span>
-                            <input name="search" type="search" value="${escapeHtml(state.filters.search)}" placeholder="Адрес">
+                            <span>Search</span>
+                            <input name="search" type="search" value="${escapeHtml(state.filters.search)}" placeholder="Address">
                         </label>
                         <label>
-                            <span>Сортировка</span>
+                            <span>Sort by</span>
                             <select name="sort">
-                                ${sortOption('-started_at', 'Поездки позже')}
-                                ${sortOption('started_at', 'Поездки раньше')}
-                                ${sortOption('-distance_km', 'Дальние сначала')}
-                                ${sortOption('distance_km', 'Короткие сначала')}
-                                ${sortOption('-created_at', 'Созданы позже')}
-                                ${sortOption('created_at', 'Созданы раньше')}
+                                ${sortOption('-started_at', 'Latest trips')}
+                                ${sortOption('started_at', 'Earliest trips')}
+                                ${sortOption('-distance_km', 'Longest first')}
+                                ${sortOption('distance_km', 'Shortest first')}
+                                ${sortOption('-created_at', 'Recently created')}
+                                ${sortOption('created_at', 'Oldest created')}
                             </select>
                         </label>
                         <div class="filter-actions">
-                            <button type="submit" class="secondary-action">Применить</button>
-                            <button type="button" class="ghost-action" data-action="reset-filters">Сброс</button>
+                            <button type="submit" class="secondary-action">Apply</button>
+                            <button type="button" class="ghost-action" data-action="reset-filters">Reset</button>
                         </div>
                     </form>
 
@@ -492,7 +492,7 @@ function renderFlash() {
     return `
         <div class="flash flash-${escapeHtml(state.flash.type)} mb-4">
             <span>${escapeHtml(state.flash.text)}</span>
-            <button type="button" aria-label="Закрыть сообщение" data-action="clear-flash">x</button>
+            <button type="button" aria-label="Close message" data-action="clear-flash">x</button>
         </div>
     `;
 }
@@ -514,7 +514,7 @@ function getMetrics() {
     return {
         totalRoutes: state.meta?.total ?? state.routes.length,
         activeRoutes,
-        totalDistance: Number(totalDistance.toFixed(1)).toLocaleString('ru-RU'),
+        totalDistance: Number(totalDistance.toFixed(1)).toLocaleString('en-US'),
     };
 }
 
@@ -534,8 +534,8 @@ function renderRoutes() {
     if (!state.routes.length) {
         return `
             <div class="empty-state">
-                <h3>Маршрутов пока нет</h3>
-                <p>Добавьте первый маршрут через форму слева.</p>
+                <h3>No routes yet</h3>
+                <p>Add your first route using the form on the left.</p>
             </div>
         `;
     }
@@ -560,8 +560,8 @@ function renderRoutes() {
                 <p class="route-note">${escapeHtml(route.distance_error)}</p>
             ` : ''}
             <div class="route-actions">
-                <button type="button" class="text-action" data-action="edit-route" data-route-id="${route.id}">Редактировать</button>
-                <button type="button" class="danger-action" data-action="delete-route" data-route-id="${route.id}">Удалить</button>
+                <button type="button" class="text-action" data-action="edit-route" data-route-id="${route.id}">Edit</button>
+                <button type="button" class="danger-action" data-action="delete-route" data-route-id="${route.id}">Delete</button>
             </div>
         </article>
     `).join('');
@@ -586,10 +586,10 @@ function renderPagination() {
     const last = state.meta.last_page;
 
     return `
-        <nav class="pagination" aria-label="Пагинация">
-            <button type="button" class="ghost-action" data-page="${current - 1}" ${current <= 1 ? 'disabled' : ''}>Назад</button>
+        <nav class="pagination" aria-label="Pagination">
+            <button type="button" class="ghost-action" data-page="${current - 1}" ${current <= 1 ? 'disabled' : ''}>Previous</button>
             <span>${current} / ${last}</span>
-            <button type="button" class="ghost-action" data-page="${current + 1}" ${current >= last ? 'disabled' : ''}>Вперед</button>
+            <button type="button" class="ghost-action" data-page="${current + 1}" ${current >= last ? 'disabled' : ''}>Next</button>
         </nav>
     `;
 }
@@ -633,7 +633,7 @@ function handleAddressInput(input) {
 
     root.querySelector(`[data-address-place-id="${field}"]`).value = '';
     root.querySelector(`[data-address-session-token="${field}"]`).value = '';
-    setAddressHint(field, query ? 'Выберите адрес из списка.' : '');
+    setAddressHint(field, query ? 'Select an address from the suggestions.' : '');
 
     clearTimeout(lookup.timer);
 
@@ -659,7 +659,7 @@ async function fetchAddressSuggestions(field, query) {
         session_token: lookup.sessionToken,
     });
 
-    setAddressHint(field, 'Ищу адрес...');
+    setAddressHint(field, 'Searching for an address...');
 
     try {
         const payload = await requestJson(`/addresses/autocomplete?${params.toString()}`);
@@ -669,7 +669,7 @@ async function fetchAddressSuggestions(field, query) {
         }
 
         renderAddressSuggestions(field, payload.data || []);
-        setAddressHint(field, payload.data?.length ? 'Выберите точное совпадение.' : 'Адрес не найден.');
+        setAddressHint(field, payload.data?.length ? 'Select the exact match.' : 'Address not found.');
     } catch (error) {
         if (requestId !== lookup.requestId) {
             return;
@@ -720,7 +720,7 @@ async function selectAddressSuggestion(field, suggestion) {
     placeId.value = '';
     sessionToken.value = lookup.sessionToken || '';
     hideAddressSuggestions(field);
-    setAddressHint(field, 'Проверяю адрес...');
+    setAddressHint(field, 'Validating address...');
 
     try {
         const payload = await requestJson('/addresses/validate', {
@@ -798,7 +798,7 @@ async function handleAuthSubmit(event) {
         );
 
         persistSession(response);
-        setFlash('success', 'Вы вошли в Droppie.');
+        setFlash('success', 'You are signed in to Droppie.');
         await fetchRoutes();
     } catch (error) {
         setFlash('error', error.message);
@@ -816,7 +816,7 @@ async function handleRouteSubmit(event) {
     const endPlaceId = String(formData.get('end_place_id') || '').trim();
 
     if (!startPlaceId || !endPlaceId) {
-        setFlash('error', 'Выберите точные адреса отправления и назначения из списка подсказок.');
+        setFlash('error', 'Select exact departure and destination addresses from the suggestions.');
         renderDashboard();
         return;
     }
@@ -844,13 +844,13 @@ async function handleRouteSubmit(event) {
                 method: 'PUT',
                 body: JSON.stringify(payload),
             });
-            setFlash('success', 'Маршрут обновлен.');
+            setFlash('success', 'Route updated.');
         } else {
             await requestJson('/routes', {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
-            setFlash('success', 'Маршрут добавлен и поставлен на расчет.');
+            setFlash('success', 'Route added and queued for distance calculation.');
         }
 
         state.editingRoute = null;
@@ -891,7 +891,7 @@ async function handleProfileSubmit(event) {
 
         state.user = response.user;
         localStorage.setItem(storageKeys.user, JSON.stringify(response.user));
-        setFlash('success', 'Профиль сохранен.');
+        setFlash('success', 'Profile saved.');
     } catch (error) {
         setFlash('error', error.message);
     } finally {
@@ -947,7 +947,7 @@ async function downloadReport(report) {
         if (!response.ok) {
             const contentType = response.headers.get('content-type') || '';
             const payload = contentType.includes('application/json') ? await response.json() : null;
-            throw new Error(readError(payload, 'Не удалось скачать отчет'));
+            throw new Error(readError(payload, 'Unable to download the report'));
         }
 
         const blob = await response.blob();
@@ -959,7 +959,7 @@ async function downloadReport(report) {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        setFlash('success', 'PDF-отчет скачан.');
+        setFlash('success', 'PDF report downloaded.');
     } catch (error) {
         setFlash('error', error.message);
     } finally {
@@ -1021,7 +1021,7 @@ async function handleActionClick(event) {
 
     if (action === 'delete-route') {
         const routeId = event.currentTarget.dataset.routeId;
-        const confirmed = window.confirm('Удалить этот маршрут?');
+        const confirmed = window.confirm('Delete this route?');
 
         if (!confirmed) {
             return;
@@ -1029,7 +1029,7 @@ async function handleActionClick(event) {
 
         try {
             await requestJson(`/routes/${routeId}`, { method: 'DELETE' });
-            setFlash('success', 'Маршрут удален.');
+            setFlash('success', 'Route deleted.');
             await fetchRoutes();
         } catch (error) {
             setFlash('error', error.message);
@@ -1060,7 +1060,7 @@ async function logout() {
         // Local session cleanup is enough if the token has already expired.
     } finally {
         clearSession();
-        setFlash('success', 'Вы вышли из системы.');
+        setFlash('success', 'You have been signed out.');
         renderAuth();
     }
 }

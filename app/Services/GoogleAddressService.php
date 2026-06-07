@@ -23,7 +23,7 @@ class GoogleAddressService
         $params = [
             'input' => $input,
             'key' => $this->placesApiKey(),
-            'language' => config('services.google.maps_language', 'ru'),
+            'language' => config('services.google.maps_language', 'en'),
             'types' => 'address',
         ];
 
@@ -67,14 +67,14 @@ class GoogleAddressService
         $placeId = trim($placeId);
 
         if ($placeId === '') {
-            throw new InvalidAddressException('Выберите адрес из списка подсказок.');
+            throw new InvalidAddressException('Select an address from the suggestions.');
         }
 
         $params = [
             'place_id' => $placeId,
             'key' => $this->placesApiKey(),
             'fields' => 'place_id,formatted_address,address_component,geometry,name',
-            'language' => config('services.google.maps_language', 'ru'),
+            'language' => config('services.google.maps_language', 'en'),
         ];
 
         if ($sessionToken) {
@@ -92,7 +92,7 @@ class GoogleAddressService
         $result = $payload['result'] ?? null;
 
         if (! is_array($result)) {
-            throw new InvalidAddressException('Google не вернул данные выбранного адреса.');
+            throw new InvalidAddressException('Google did not return details for the selected address.');
         }
 
         $address = $this->normalizePlaceResult($result, $placeId);
@@ -158,14 +158,14 @@ class GoogleAddressService
     private function ensureCompleteAddress(array $address): void
     {
         $required = [
-            'formatted_address' => 'форматированный адрес',
-            'postal_code' => 'почтовый индекс',
-            'city' => 'город',
-            'country' => 'страна',
-            'street' => 'улица',
-            'street_number' => 'номер дома',
-            'latitude' => 'координаты',
-            'longitude' => 'координаты',
+            'formatted_address' => 'formatted address',
+            'postal_code' => 'postal code',
+            'city' => 'city',
+            'country' => 'country',
+            'street' => 'street',
+            'street_number' => 'building number',
+            'latitude' => 'coordinates',
+            'longitude' => 'coordinates',
         ];
 
         $missing = collect($required)
@@ -176,7 +176,7 @@ class GoogleAddressService
 
         if ($missing !== []) {
             throw new InvalidAddressException(
-                'В выбранном адресе отсутствует: '.implode(', ', $missing).'. Выберите точный адрес с индексом, городом, улицей и номером дома.'
+                'The selected address is missing: '.implode(', ', $missing).'. Select an exact address with a postal code, city, street, and building number.'
             );
         }
     }
@@ -208,7 +208,7 @@ class GoogleAddressService
             ->post('https://addressvalidation.googleapis.com/v1:validateAddress', $payload);
 
         if (! $response->successful()) {
-            throw new AddressLookupException('Google Address Validation API сейчас недоступен.');
+            throw new AddressLookupException('Google Address Validation API is currently unavailable.');
         }
 
         $verdict = $response->json('result.verdict', []);
@@ -218,7 +218,7 @@ class GoogleAddressService
             || ($verdict['hasUnresolvedTokens'] ?? false)
             || ($verdict['hasReplacedComponents'] ?? false)
         ) {
-            throw new InvalidAddressException('Google не смог подтвердить все компоненты адреса. Проверьте индекс, город, улицу и номер дома.');
+            throw new InvalidAddressException('Google could not confirm all address components. Check the postal code, city, street, and building number.');
         }
     }
 
@@ -231,7 +231,7 @@ class GoogleAddressService
         $response = Http::timeout(8)->get($url, $params);
 
         if (! $response->successful()) {
-            throw new AddressLookupException($context.' сейчас недоступен.');
+            throw new AddressLookupException($context.' is currently unavailable.');
         }
 
         return $response->json() ?? [];
@@ -249,10 +249,10 @@ class GoogleAddressService
             return;
         }
 
-        $message = $payload['error_message'] ?? ($context.' вернул статус '.($status ?: 'UNKNOWN').'.');
+        $message = $payload['error_message'] ?? ($context.' returned status '.($status ?: 'UNKNOWN').'.');
 
         if (in_array($status, $invalidStatuses, true)) {
-            throw new InvalidAddressException('Выберите адрес из списка подсказок.');
+            throw new InvalidAddressException('Select an address from the suggestions.');
         }
 
         throw new AddressLookupException($message);
@@ -263,7 +263,7 @@ class GoogleAddressService
         $key = config('services.google.places_api_key');
 
         if (blank($key)) {
-            throw new AddressLookupException('Google Places API key не настроен.');
+            throw new AddressLookupException('Google Places API key is not configured.');
         }
 
         return $key;
@@ -274,7 +274,7 @@ class GoogleAddressService
         $key = config('services.google.address_validation_api_key');
 
         if (blank($key)) {
-            throw new AddressLookupException('Google Address Validation API key не настроен.');
+            throw new AddressLookupException('Google Address Validation API key is not configured.');
         }
 
         return $key;

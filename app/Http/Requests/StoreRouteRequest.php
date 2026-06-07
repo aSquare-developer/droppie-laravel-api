@@ -39,10 +39,10 @@ class StoreRouteRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'start_place_id.required' => 'Выберите точный адрес отправления из списка подсказок.',
-            'end_place_id.required' => 'Выберите точный адрес назначения из списка подсказок.',
-            'start_address.prohibited' => 'Адрес отправления нельзя отправлять произвольной строкой. Выберите адрес из подсказок.',
-            'end_address.prohibited' => 'Адрес назначения нельзя отправлять произвольной строкой. Выберите адрес из подсказок.',
+            'start_place_id.required' => 'Select an exact departure address from the suggestions.',
+            'end_place_id.required' => 'Select an exact destination address from the suggestions.',
+            'start_address.prohibited' => 'The departure address cannot be submitted as free-form text. Select an address from the suggestions.',
+            'end_address.prohibited' => 'The destination address cannot be submitted as free-form text. Select an address from the suggestions.',
         ];
     }
 }

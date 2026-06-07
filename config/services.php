@@ -41,7 +41,7 @@ return [
         'places_api_key' => env('GOOGLE_PLACES_API_KEY', env('GOOGLE_MAPS_API_KEY')),
         'address_validation_api_key' => env('GOOGLE_ADDRESS_VALIDATION_API_KEY', env('GOOGLE_MAPS_API_KEY')),
         'address_validation_enabled' => env('GOOGLE_ADDRESS_VALIDATION_ENABLED', false),
-        'maps_language' => env('GOOGLE_MAPS_LANGUAGE', 'ru'),
+        'maps_language' => env('GOOGLE_MAPS_LANGUAGE', 'en'),
         'places_country' => env('GOOGLE_PLACES_COUNTRY'),
     ],
 
