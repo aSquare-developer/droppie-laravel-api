@@ -59,7 +59,7 @@
         <strong>User:</strong> {{ $user->name }}<br>
         <strong>Email:</strong> {{ $user->email }}<br>
         <strong>Total routes:</strong> {{ $routes->count() }}<br>
-        <strong>Total distance:</strong> {{ $totalDistanceKm }} km
+        <strong>Total distance:</strong> {{ number_format($totalDistanceKm, 1, '.', ' ') }} km
     </div>
 
     <table>
@@ -77,7 +77,7 @@
                     <td>{{ $route->started_at->format('d.m.Y') }}</td>
                     <td>{{ $route->startAddress?->formatted_address }}</td>
                     <td>{{ $route->endAddress?->formatted_address }}</td>
-                    <td>{{ $route->distance_km }} km</td>
+                    <td>{{ number_format($route->distance_km, 1, '.', ' ') }} km</td>
                 </tr>
             @empty
                 <tr>
@@ -88,7 +88,7 @@
     </table>
 
     <div class="total">
-        Total: {{ $totalDistanceKm }} km
+        Total: {{ number_format($totalDistanceKm, 1, '.', ' ') }} km
     </div>
 </body>
 </html>
