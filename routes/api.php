@@ -13,8 +13,8 @@ Route::get('/hello', function () {
     ]);
 });
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -26,8 +26,12 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/addresses/autocomplete', [AddressController::class, 'autocomplete']);
-    Route::post('/addresses/validate', [AddressController::class, 'validateAddress']);
-    Route::apiResource('routes', RouteController::class);
-    Route::get('/reports/routes/pdf', [RouteReportController::class, 'download']);
+    Route::get('/addresses/autocomplete', [AddressController::class, 'autocomplete'])
+        ->middleware('throttle:address-autocomplete');
+    Route::post('/addresses/validate', [AddressController::class, 'validateAddress'])
+        ->middleware('throttle:address-validation');
+    Route::apiResource('routes', RouteController::class)
+        ->middlewareFor(['store', 'update'], 'throttle:route-write');
+    Route::get('/reports/routes/pdf', [RouteReportController::class, 'download'])
+        ->middleware('throttle:reports');
 });

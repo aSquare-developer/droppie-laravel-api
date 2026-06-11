@@ -19,8 +19,8 @@ class RouteReportService
             ->get();
     }
 
-    public function getTotalDistance(Collection $routes): int
+    public function getTotalDistance(Collection $routes): float
     {
-        return $routes->sum('distance_km');
+        return round((float) $routes->sum('distance_km'), 1);
     }
 }
