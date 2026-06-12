@@ -10,6 +10,7 @@ use App\Models\Route;
 use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RouteService
@@ -35,6 +36,8 @@ class RouteService
 
     public function updateRoute(Route $route, array $data): Route
     {
+        $this->ensureRouteCanBeChanged($route);
+
         $payload = Arr::only($data, ['started_at']);
 
         if (array_key_exists('start_place_id', $data)) {
@@ -75,7 +78,16 @@ class RouteService
 
     public function deleteRoute(Route $route): void
     {
+        $this->ensureRouteCanBeChanged($route);
+
         $route->delete();
+    }
+
+    private function ensureRouteCanBeChanged(Route $route): void
+    {
+        if ($route->isDistanceCalculationInProgress()) {
+            throw new ConflictHttpException('Route cannot be edited or deleted while distance is being calculated.');
+        }
     }
 
     private function resolveAddress(string $prefix, string $placeId, ?string $sessionToken): Address

@@ -27,6 +27,11 @@ class Route extends Model
         ];
     }
 
+    public function isDistanceCalculationInProgress(): bool
+    {
+        return in_array($this->distance_status, ['pending', 'processing'], true);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

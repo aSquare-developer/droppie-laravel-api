@@ -110,6 +110,10 @@ function routeStatusLabel(route) {
     return statusLabels[routeStatus(route)] || routeStatus(route);
 }
 
+function routeIsLocked(route) {
+    return ['pending', 'processing'].includes(routeStatus(route));
+}
+
 function setFlash(type, text) {
     state.flash = { type, text };
 }
@@ -553,7 +557,11 @@ function renderRoutes() {
         `;
     }
 
-    return state.routes.map((route) => `
+    return state.routes.map((route) => {
+        const locked = routeIsLocked(route);
+        const disabled = locked ? 'disabled title="Available after distance calculation finishes"' : '';
+
+        return `
         <article class="route-card status-${escapeHtml(routeStatus(route))}">
             <div class="route-card-main">
                 <div class="route-path">
@@ -573,11 +581,12 @@ function renderRoutes() {
                 <p class="route-note">${escapeHtml(route.distance_error)}</p>
             ` : ''}
             <div class="route-actions">
-                <button type="button" class="text-action" data-action="edit-route" data-route-id="${route.id}">Edit</button>
-                <button type="button" class="danger-action" data-action="delete-route" data-route-id="${route.id}">Delete</button>
+                <button type="button" class="text-action" data-action="edit-route" data-route-id="${route.id}" ${disabled}>Edit</button>
+                <button type="button" class="danger-action" data-action="delete-route" data-route-id="${route.id}" ${disabled}>Delete</button>
             </div>
         </article>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function renderLoadingRows() {
