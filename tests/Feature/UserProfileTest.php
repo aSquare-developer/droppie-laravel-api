@@ -44,7 +44,7 @@ it('updates profile fields', function () {
             'company_name' => 'Fast Drops',
             'car_registration_number' => 'XYZ-789',
             'car_make_model' => 'Ford Transit',
-            'car_mileage' => 92000,
+            'car_mileage' => 92000.5,
             'country' => 'Estonia',
         ])
         ->assertOk()
@@ -55,7 +55,7 @@ it('updates profile fields', function () {
         ->assertJsonPath('user.company_name', 'Fast Drops')
         ->assertJsonPath('user.car_registration_number', 'XYZ-789')
         ->assertJsonPath('user.car_make_model', 'Ford Transit')
-        ->assertJsonPath('user.car_mileage', 92000)
+        ->assertJsonPath('user.car_mileage', 92000.5)
         ->assertJsonPath('user.country', 'Estonia');
 
     $this->assertDatabaseHas('users', [
@@ -66,7 +66,7 @@ it('updates profile fields', function () {
         'company_name' => 'Fast Drops',
         'car_registration_number' => 'XYZ-789',
         'car_make_model' => 'Ford Transit',
-        'car_mileage' => 92000,
+        'car_mileage' => 92000.5,
         'country' => 'Estonia',
     ]);
 });

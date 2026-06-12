@@ -32,6 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:address-validation');
     Route::apiResource('routes', RouteController::class)
         ->middlewareFor(['store', 'update'], 'throttle:route-write');
-    Route::get('/reports/routes/pdf', [RouteReportController::class, 'download'])
+    Route::post('/reports/routes/pdf', [RouteReportController::class, 'download'])
         ->middleware('throttle:reports');
 });
