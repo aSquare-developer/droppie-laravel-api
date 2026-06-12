@@ -406,7 +406,7 @@ function renderDashboard() {
                                 </label>
                                 <label>
                                     <span>Vehicle mileage</span>
-                                    <input name="car_mileage" type="number" min="0" step="1" inputmode="numeric" value="${escapeHtml(state.user?.car_mileage ?? '')}">
+                                    <input name="car_mileage" type="number" min="0" step="0.1" inputmode="decimal" value="${escapeHtml(state.user?.car_mileage ?? '')}">
                                 </label>
                                 <label>
                                     <span>Country of residence</span>
@@ -986,6 +986,7 @@ async function downloadReport(report) {
     try {
         const params = new URLSearchParams(state.report);
         const response = await fetch(`${apiBase}/reports/routes/pdf?${params.toString()}`, {
+            method: 'POST',
             headers: {
                 Accept: 'application/pdf',
                 Authorization: `Bearer ${state.token}`,
@@ -1007,6 +1008,7 @@ async function downloadReport(report) {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
+        await fetchMe();
         setFlash('success', 'PDF report downloaded.');
     } catch (error) {
         setFlash('error', error.message);

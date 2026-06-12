@@ -27,18 +27,29 @@ class RouteReportController extends Controller
             $validated['to']
         );
 
+        $user = $request->user();
+        $routeReportService->validateTripLog($user);
         $totalDistanceKm = $routeReportService->getTotalDistance($routes);
+        $tripLogRows = $routeReportService->buildTripLogRows($routes, $user->car_mileage);
 
         $pdf = Pdf::loadView('pdf.routes-report', [
-            'user' => $request->user(),
-            'routes' => $routes,
+            'user' => $user,
+            'tripLogRows' => $tripLogRows,
             'from' => $fromFormatted,
             'to' => $toFormatted,
             'totalDistanceKm' => $totalDistanceKm,
+        ])->setPaper('a4', 'landscape');
+
+        $content = $pdf->output();
+        $user->update([
+            'car_mileage' => $routeReportService->getEndingOdometer($tripLogRows, $user->car_mileage),
         ]);
 
-        return $pdf->download(
-            'routes-report-'.$fromFormatted.'-'.$toFormatted.'.pdf'
-        );
+        $filename = 'routes-report-'.$fromFormatted.'-'.$toFormatted.'.pdf';
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 }

@@ -29,7 +29,7 @@ class UpdateProfileRequest extends FormRequest
             'company_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'car_registration_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             'car_make_model' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'car_mileage' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'car_mileage' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999999.9'],
             'country' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
