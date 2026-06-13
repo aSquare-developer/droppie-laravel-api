@@ -19,6 +19,7 @@ class RouteResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'vehicle_id' => $this->vehicle_id,
             'start_address' => $startAddress?->formatted_address,
             'start_place_id' => $startAddress?->place_id,
             'start_postal_code' => $startAddress?->postal_code,

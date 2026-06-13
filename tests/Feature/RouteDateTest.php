@@ -93,6 +93,7 @@ it('stores the trip date and omits comments from route responses', function () {
 
     $this->assertDatabaseHas('routes', [
         'user_id' => $user->id,
+        'vehicle_id' => $user->activeVehicle()->value('id'),
         'started_at' => '2026-06-01 00:00:00',
     ]);
 

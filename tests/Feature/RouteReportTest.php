@@ -12,16 +12,26 @@ uses(RefreshDatabase::class);
 it('does not store generated trip log fields on routes', function () {
     expect(Schema::hasColumn('routes', 'purpose'))->toBeFalse()
         ->and(Schema::hasColumn('routes', 'odometer_start_km'))->toBeFalse()
-        ->and(Schema::hasColumn('routes', 'odometer_end_km'))->toBeFalse();
+        ->and(Schema::hasColumn('routes', 'odometer_end_km'))->toBeFalse()
+        ->and(Schema::hasColumn('routes', 'vehicle_id'))->toBeTrue()
+        ->and(Schema::hasTable('trip_reports'))->toBeTrue();
+});
+
+it('keeps authentication data only in users', function () {
+    expect(Schema::hasColumn('users', 'name'))->toBeFalse()
+        ->and(Schema::hasColumn('users', 'last_name'))->toBeFalse()
+        ->and(Schema::hasColumn('users', 'company_name'))->toBeFalse()
+        ->and(Schema::hasColumn('users', 'car_registration_number'))->toBeFalse()
+        ->and(Schema::hasColumn('users', 'car_mileage'))->toBeFalse()
+        ->and(Schema::hasTable('user_profiles'))->toBeTrue()
+        ->and(Schema::hasTable('vehicles'))->toBeTrue();
 });
 
 it('calculates sequential odometer readings from the profile mileage', function () {
-    $user = User::factory()->create([
-        'name' => 'Mari',
-        'last_name' => 'Tamm',
-        'car_registration_number' => '123 ABC',
-        'car_mileage' => 1000.2,
-    ]);
+    $user = User::factory()
+        ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1000.2])
+        ->create();
     $startAddress = Address::factory()->create([
         'formatted_address' => 'Mannerheimintie 1, Helsinki',
     ]);
@@ -48,22 +58,17 @@ it('calculates sequential odometer readings from the profile mileage', function 
     ]);
 
     $service = app(RouteReportService::class);
-    $routes = $service->getRoutesForPeriod($user, '2026-06-01', '2026-06-30');
-    $tripLogRows = $service->buildTripLogRows($routes, $user->car_mileage);
-    $totalDistanceKm = $service->getTotalDistance($routes);
+    $report = $service->getOrCreateReport($user, '2026-06-01', '2026-06-30');
 
-    expect($totalDistanceKm)->toBeFloat()->toBe(6.2)
-        ->and($tripLogRows->pluck('odometer_start_km')->all())->toBe([1000.2, 1002.7])
-        ->and($tripLogRows->pluck('odometer_end_km')->all())->toBe([1002.7, 1006.4])
-        ->and($service->getEndingOdometer($tripLogRows, $user->car_mileage))->toBe(1006.4);
+    expect($report->total_distance_km)->toBe(6.2)
+        ->and(collect($report->rows)->pluck('odometer_start_km')->all())->toBe([1000.2, 1002.7])
+        ->and(collect($report->rows)->pluck('odometer_end_km')->all())->toBe([1002.7, 1006.4]);
 
     $this
         ->view('pdf.routes-report', [
-            'user' => $user,
-            'tripLogRows' => $tripLogRows,
+            'report' => $report,
             'from' => '01.06.2026',
             'to' => '30.06.2026',
-            'totalDistanceKm' => $totalDistanceKm,
         ])
         ->assertSee('Mari Tamm')
         ->assertSee('123 ABC')
@@ -75,11 +80,10 @@ it('calculates sequential odometer readings from the profile mileage', function 
 });
 
 it('prevents downloading a trip log when required profile data is missing', function () {
-    $user = User::factory()->create([
-        'last_name' => null,
-        'car_registration_number' => null,
-        'car_mileage' => null,
-    ]);
+    $user = User::factory()
+        ->withProfile(['last_name' => null])
+        ->withVehicle(['registration_number' => null, 'odometer_km' => null])
+        ->create();
 
     $this
         ->actingAs($user, 'sanctum')
@@ -89,12 +93,10 @@ it('prevents downloading a trip log when required profile data is missing', func
 });
 
 it('downloads a trip log and updates the profile mileage to its ending reading', function () {
-    $user = User::factory()->create([
-        'name' => 'Mari',
-        'last_name' => 'Tamm',
-        'car_registration_number' => '123 ABC',
-        'car_mileage' => 1500.5,
-    ]);
+    $user = User::factory()
+        ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1500.5])
+        ->create();
 
     Route::factory()->create([
         'user_id' => $user->id,
@@ -110,14 +112,34 @@ it('downloads a trip log and updates the profile mileage to its ending reading',
         ->assertHeader('content-type', 'application/pdf');
 
     expect($response->getContent())->toStartWith('%PDF')
-        ->and($user->fresh()->car_mileage)->toBe(1512.8);
+        ->and($user->activeVehicle()->value('odometer_km'))->toBe(1512.8);
 });
 
 it('keeps profile mileage unchanged for an empty trip log', function () {
-    $user = User::factory()->create([
-        'last_name' => 'Tamm',
-        'car_registration_number' => '123 ABC',
-        'car_mileage' => 1500.5,
+    $user = User::factory()
+        ->withProfile(['last_name' => 'Tamm'])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1500.5])
+        ->create();
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->post('/api/reports/routes/pdf?from=2026-06-01&to=2026-06-30')
+        ->assertOk();
+
+    expect($user->activeVehicle()->value('odometer_km'))->toBe(1500.5);
+});
+
+it('reuses an existing report without increasing the odometer twice', function () {
+    $user = User::factory()
+        ->withProfile(['last_name' => 'Tamm'])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 2000])
+        ->create();
+
+    Route::factory()->create([
+        'user_id' => $user->id,
+        'started_at' => '2026-06-01',
+        'distance_km' => 10,
+        'distance_status' => 'completed',
     ]);
 
     $this
@@ -125,5 +147,41 @@ it('keeps profile mileage unchanged for an empty trip log', function () {
         ->post('/api/reports/routes/pdf?from=2026-06-01&to=2026-06-30')
         ->assertOk();
 
-    expect($user->fresh()->car_mileage)->toBe(1500.5);
+    $this
+        ->actingAs($user, 'sanctum')
+        ->post('/api/reports/routes/pdf?from=2026-06-01&to=2026-06-30')
+        ->assertOk();
+
+    expect($user->activeVehicle()->value('odometer_km'))->toBe(2010.0);
+
+    $this->assertDatabaseCount('trip_reports', 1);
+});
+
+it('redownloads an immutable report after profile and route data changes', function () {
+    $user = User::factory()
+        ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 3000])
+        ->create();
+
+    $route = Route::factory()->create([
+        'user_id' => $user->id,
+        'started_at' => '2026-06-01',
+        'distance_km' => 5,
+        'distance_status' => 'completed',
+    ]);
+
+    $service = app(RouteReportService::class);
+    $firstReport = $service->getOrCreateReport($user, '2026-06-01', '2026-06-30');
+
+    $user->profile()->update(['first_name' => 'Changed', 'last_name' => null]);
+    $user->activeVehicle()->update(['registration_number' => null]);
+    $route->update(['distance_km' => 50]);
+
+    $sameReport = $service->getOrCreateReport($user->fresh(), '2026-06-01', '2026-06-30');
+
+    expect($sameReport->id)->toBe($firstReport->id)
+        ->and($sameReport->profile_snapshot['first_name'])->toBe('Mari')
+        ->and($sameReport->vehicle_snapshot['registration_number'])->toBe('123 ABC')
+        ->and($sameReport->total_distance_km)->toBe(5.0)
+        ->and($sameReport->odometer_end_km)->toBe(3005.0);
 });
