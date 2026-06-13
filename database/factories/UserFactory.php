@@ -17,6 +17,17 @@ class UserFactory extends Factory
      */
     protected static ?string $password;
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->profile()->firstOrCreate([], [
+                'first_name' => fake()->firstName(),
+            ]);
+
+            $user->vehicles()->firstOrCreate(['is_active' => true]);
+        });
+    }
+
     /**
      * Define the model's default state.
      *
@@ -25,7 +36,6 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
@@ -41,5 +51,28 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function withProfile(array $attributes = []): static
+    {
+        return $this->afterCreating(function (User $user) use ($attributes): void {
+            $user->profile()->updateOrCreate([], $attributes);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function withVehicle(array $attributes = []): static
+    {
+        return $this->afterCreating(function (User $user) use ($attributes): void {
+            $user->activeVehicle()->updateOrCreate([], [
+                ...$attributes,
+                'is_active' => true,
+            ]);
+        });
     }
 }

@@ -6,16 +6,21 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('shows the authenticated user profile', function () {
-    $user = User::factory()->create([
-        'name' => 'Ivan',
-        'last_name' => 'Petrov',
-        'email' => 'ivan@example.com',
-        'company_name' => 'Droppie Logistics',
-        'car_registration_number' => 'ABC-123',
-        'car_make_model' => 'Toyota Corolla',
-        'car_mileage' => 150000,
-        'country' => 'Finland',
-    ]);
+    $user = User::factory()
+        ->withProfile([
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrov',
+            'company_name' => 'Droppie Logistics',
+            'country' => 'Finland',
+        ])
+        ->withVehicle([
+            'registration_number' => 'ABC-123',
+            'make_model' => 'Toyota Corolla',
+            'odometer_km' => 150000,
+        ])
+        ->create([
+            'email' => 'ivan@example.com',
+        ]);
 
     $this
         ->actingAs($user, 'sanctum')
@@ -58,16 +63,25 @@ it('updates profile fields', function () {
         ->assertJsonPath('user.car_mileage', 92000.5)
         ->assertJsonPath('user.country', 'Estonia');
 
+    $this->assertDatabaseHas('user_profiles', [
+        'user_id' => $user->id,
+        'first_name' => 'Olga',
+        'last_name' => 'Sokolova',
+        'company_name' => 'Fast Drops',
+        'country' => 'Estonia',
+    ]);
+
+    $this->assertDatabaseHas('vehicles', [
+        'user_id' => $user->id,
+        'is_active' => true,
+        'registration_number' => 'XYZ-789',
+        'make_model' => 'Ford Transit',
+        'odometer_km' => 92000.5,
+    ]);
+
     $this->assertDatabaseHas('users', [
         'id' => $user->id,
         'email' => 'driver@example.com',
-        'name' => 'Olga',
-        'last_name' => 'Sokolova',
-        'company_name' => 'Fast Drops',
-        'car_registration_number' => 'XYZ-789',
-        'car_make_model' => 'Ford Transit',
-        'car_mileage' => 92000.5,
-        'country' => 'Estonia',
     ]);
 });
 

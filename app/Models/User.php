@@ -7,20 +7,15 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
-    'name',
-    'last_name',
     'email',
     'password',
-    'company_name',
-    'car_registration_number',
-    'car_make_model',
-    'car_mileage',
-    'country',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -38,12 +33,31 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'car_mileage' => 'float',
         ];
     }
 
-    public function routes()
+    public function profile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
+    public function activeVehicle(): HasOne
+    {
+        return $this->hasOne(Vehicle::class)->where('is_active', true);
+    }
+
+    public function routes(): HasMany
     {
         return $this->hasMany(Route::class);
+    }
+
+    public function tripReports(): HasMany
+    {
+        return $this->hasMany(TripReport::class);
     }
 }

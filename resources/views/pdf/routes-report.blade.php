@@ -105,22 +105,22 @@
         <tr>
             <td>
                 <span class="summary-label">Driver</span>
-                <strong>{{ $user->name }} {{ $user->last_name }}</strong><br>
-                {{ $user->email }}@if ($user->country) &middot; {{ $user->country }}@endif
+                <strong>{{ $report->profile_snapshot['first_name'] }} {{ $report->profile_snapshot['last_name'] }}</strong><br>
+                {{ $report->profile_snapshot['email'] }}@if ($report->profile_snapshot['country']) &middot; {{ $report->profile_snapshot['country'] }}@endif
             </td>
             <td>
                 <span class="summary-label">Company</span>
-                {{ $user->company_name ?: 'Not specified' }}
+                {{ $report->profile_snapshot['company_name'] ?: 'Not specified' }}
             </td>
             <td>
                 <span class="summary-label">Vehicle</span>
-                <strong>{{ $user->car_registration_number }}</strong><br>
-                {{ $user->car_make_model ?: 'Make and model not specified' }}
+                <strong>{{ $report->vehicle_snapshot['registration_number'] }}</strong><br>
+                {{ $report->vehicle_snapshot['make_model'] ?: 'Make and model not specified' }}
             </td>
             <td>
                 <span class="summary-label">Summary</span>
-                {{ $tripLogRows->count() }} trips<br>
-                {{ number_format($totalDistanceKm, 1, '.', ' ') }} km
+                {{ count($report->rows) }} trips<br>
+                {{ number_format($report->total_distance_km, 1, '.', ' ') }} km
             </td>
         </tr>
     </table>
@@ -136,16 +136,16 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($tripLogRows as $row)
+            @forelse ($report->rows as $row)
                 <tr>
-                    <td class="date">{{ $row['route']->started_at->format('d.m.Y') }}</td>
+                    <td class="date">{{ \Carbon\Carbon::parse($row['date'])->format('d.m.Y') }}</td>
                     <td class="address">
-                        {{ $row['route']->startAddress?->formatted_address }}<br>
-                        &rarr; {{ $row['route']->endAddress?->formatted_address }}
+                        {{ $row['start_address'] }}<br>
+                        &rarr; {{ $row['end_address'] }}
                     </td>
                     <td class="reading">{{ number_format($row['odometer_start_km'], 1, '.', ' ') }}</td>
                     <td class="reading">{{ number_format($row['odometer_end_km'], 1, '.', ' ') }}</td>
-                    <td class="distance">{{ number_format($row['route']->distance_km, 1, '.', ' ') }}</td>
+                    <td class="distance">{{ number_format($row['distance_km'], 1, '.', ' ') }}</td>
                 </tr>
             @empty
                 <tr>
@@ -156,7 +156,7 @@
     </table>
 
     <div class="total">
-        Total: {{ number_format($totalDistanceKm, 1, '.', ' ') }} km
+        Total: {{ number_format($report->total_distance_km, 1, '.', ' ') }} km
     </div>
 </body>
 </html>
