@@ -5,15 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>Droppie</title>
+        <title>@yield('title', 'Droppie')</title>
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body>
-        <main class="boot-screen" aria-live="polite">
-            <div class="brand-mark">D</div>
-            <p>Droppie</p>
-            <a class="primary-action" href="{{ route(auth()->check() ? 'dashboard' : 'login') }}">Continue</a>
-        </main>
+        @yield('body')
     </body>
 </html>
