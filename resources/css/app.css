@@ -63,6 +63,11 @@ button:disabled {
     opacity: 0.55;
 }
 
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
 input,
 select,
 textarea {
@@ -367,8 +372,11 @@ label span {
     background: var(--surface-soft);
 }
 
-.segmented button {
+.segmented button,
+.segmented a {
     min-height: 40px;
+    display: grid;
+    place-items: center;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -376,7 +384,8 @@ label span {
     font-weight: 750;
 }
 
-.segmented button.active {
+.segmented button.active,
+.segmented a.active {
     background: #fff;
     color: var(--ink);
     box-shadow: 0 8px 18px rgba(18, 60, 56, 0.1);
@@ -429,10 +438,14 @@ label span {
 .danger-action,
 .text-action {
     min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 8px;
     border: 1px solid transparent;
     padding: 0 14px;
     font-weight: 800;
+    text-decoration: none;
     transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
 }
 
@@ -507,6 +520,14 @@ label span {
     background: transparent;
     color: inherit;
     font-weight: 850;
+}
+
+.flash p {
+    margin: 0;
+}
+
+.flash p + p {
+    margin-top: 4px;
 }
 
 .flash-success {
@@ -818,6 +839,10 @@ label span {
     display: flex;
     justify-content: flex-end;
     gap: 14px;
+}
+
+.route-actions form {
+    margin: 0;
 }
 
 .empty-state {
