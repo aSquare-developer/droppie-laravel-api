@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <p class="route-note" data-route-error @hidden(blank($route->distance_error))>{{ $route->distance_error }}</p>
+    <p class="route-note" data-route-error @if (blank($route->distance_error)) hidden @endif>{{ $route->distance_error }}</p>
 
     <div class="route-actions">
         @if ($locked)
