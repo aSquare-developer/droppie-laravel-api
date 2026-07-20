@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RouteService
 {
-    public function __construct(private readonly GoogleAddressService $addresses)
+    public function __construct(private readonly AddressLookupService $addresses)
     {
         //
     }
@@ -102,7 +102,7 @@ class RouteService
     private function resolveAddress(string $prefix, string $placeId, ?string $sessionToken): Address
     {
         try {
-            $address = $this->addresses->validatePlace($placeId, $sessionToken);
+            return $this->addresses->resolvePlace($placeId, $sessionToken);
         } catch (InvalidAddressException $exception) {
             throw ValidationException::withMessages([
                 $prefix.'_place_id' => $exception->getMessage(),
@@ -110,20 +110,5 @@ class RouteService
         } catch (AddressLookupException $exception) {
             throw new HttpException(503, $exception->getMessage(), $exception);
         }
-
-        return Address::updateOrCreate(
-            ['place_id' => $address['place_id']],
-            [
-                'formatted_address' => $address['formatted_address'],
-                'postal_code' => $address['postal_code'],
-                'city' => $address['city'],
-                'country' => $address['country'],
-                'country_code' => $address['country_code'],
-                'street' => $address['street'],
-                'street_number' => $address['street_number'],
-                'latitude' => $address['latitude'],
-                'longitude' => $address['longitude'],
-            ]
-        );
     }
 }

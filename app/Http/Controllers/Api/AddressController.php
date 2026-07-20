@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Exceptions\AddressLookupException;
 use App\Exceptions\InvalidAddressException;
 use App\Http\Controllers\Controller;
-use App\Services\GoogleAddressService;
+use App\Services\AddressLookupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AddressController extends Controller
 {
-    public function autocomplete(Request $request, GoogleAddressService $addresses): JsonResponse
+    public function autocomplete(Request $request, AddressLookupService $addresses): JsonResponse
     {
         $validated = $request->validate([
             'input' => ['required', 'string', 'min:3', 'max:255'],
@@ -32,7 +32,7 @@ class AddressController extends Controller
         }
     }
 
-    public function validateAddress(Request $request, GoogleAddressService $addresses): JsonResponse
+    public function validateAddress(Request $request, AddressLookupService $addresses): JsonResponse
     {
         $validated = $request->validate([
             'place_id' => ['required', 'string', 'max:255'],
