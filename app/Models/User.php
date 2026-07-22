@@ -60,4 +60,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(TripReport::class);
     }
+
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
 }

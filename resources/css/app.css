@@ -396,6 +396,55 @@ label span {
     gap: 16px;
 }
 
+.oauth-options {
+    display: grid;
+    gap: 16px;
+}
+
+.oauth-action {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 800;
+    text-decoration: none;
+    transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.oauth-action:hover {
+    border-color: #9bb8b3;
+    background: var(--surface-soft);
+    transform: translateY(-1px);
+}
+
+.google-mark {
+    color: #1a73e8;
+    font-size: 1.1rem;
+    font-weight: 900;
+}
+
+.auth-divider {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    height: 1px;
+    background: var(--line);
+    content: '';
+}
+
 .compact-form {
     display: grid;
     gap: 12px;
