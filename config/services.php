@@ -36,6 +36,9 @@ return [
     ],
 
     'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
         'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
         'routes_api_key' => env('GOOGLE_ROUTES_API_KEY', env('GOOGLE_MAPS_API_KEY')),
         'routes_connect_timeout' => (float) env('GOOGLE_ROUTES_CONNECT_TIMEOUT', 3),

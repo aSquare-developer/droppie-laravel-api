@@ -34,6 +34,8 @@
                 <a href="{{ route('register') }}">Register</a>
             </div>
 
+            @include('partials.google-auth')
+
             <form method="POST" action="{{ route('login.store') }}" class="stacked-form">
                 @csrf
                 <label>

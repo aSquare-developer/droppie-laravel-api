@@ -3,6 +3,7 @@
 use App\Http\Controllers\Web\AddressController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\GoogleAuthController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\RouteController;
 use App\Http\Controllers\Web\RouteReportController;
@@ -23,6 +24,13 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])
         ->middleware('throttle:register')
         ->name('register.store');
+
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
+        ->middleware('throttle:10,1')
+        ->name('oauth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+        ->middleware('throttle:30,1')
+        ->name('oauth.google.callback');
 });
 
 Route::middleware('auth')->group(function () {

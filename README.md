@@ -7,6 +7,7 @@ Test application: [https://droppie.asquare.ee/](https://droppie.asquare.ee/)
 ## Features
 
 - Laravel Sanctum authentication
+- Google OAuth sign-in
 - Google Places address autocomplete and validation
 - Optional Google Address Validation API verification
 - Asynchronous route distance calculation
@@ -51,6 +52,9 @@ DB_USERNAME=root
 DB_PASSWORD=
 
 GOOGLE_MAPS_API_KEY=your-google-api-key
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+GOOGLE_REDIRECT_URI=/auth/google/callback
 GOOGLE_ROUTES_API_KEY="${GOOGLE_MAPS_API_KEY}"
 GOOGLE_PLACES_API_KEY="${GOOGLE_MAPS_API_KEY}"
 GOOGLE_ADDRESS_VALIDATION_API_KEY="${GOOGLE_MAPS_API_KEY}"
@@ -67,6 +71,16 @@ composer dev
 ```
 
 `composer dev` starts the Laravel server, queue listener, logs, and Vite.
+
+## Google OAuth
+
+Create a Web application OAuth client in Google Cloud Console. Add the full callback URL to its authorized redirect URIs, for example:
+
+```text
+https://droppie.example.com/auth/google/callback
+```
+
+Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the application environment. The relative `GOOGLE_REDIRECT_URI` uses `APP_URL`, so production must have the correct public HTTPS URL configured.
 
 ## Address Validation
 
