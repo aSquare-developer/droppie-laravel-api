@@ -88,6 +88,8 @@ Routes accept Google `place_id` values instead of free-form address strings. A v
 
 Addresses are stored in the reusable `addresses` table. The `routes` table stores only `start_address_id` and `end_address_id`.
 
+The address catalog is shared only for `place_id` deduplication. Autocomplete history is stored in `address_usages` and scoped to the authenticated user, so one user cannot receive addresses previously entered by another user.
+
 ## Queue
 
 Route distance calculation runs through the Laravel queue:

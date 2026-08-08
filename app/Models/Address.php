@@ -40,4 +40,9 @@ class Address extends Model
     {
         return $this->hasMany(Route::class, 'end_address_id');
     }
+
+    public function usages(): HasMany
+    {
+        return $this->hasMany(AddressUsage::class);
+    }
 }
