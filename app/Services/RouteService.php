@@ -33,8 +33,8 @@ class RouteService
         $route = $user->routes()->create([
             ...Arr::only($data, ['started_at']),
             'vehicle_id' => $vehicle->id,
-            'start_address_id' => $this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
-            'end_address_id' => $this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
+            'start_address_id' => $this->resolveAddress($user, 'start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
+            'end_address_id' => $this->resolveAddress($user, 'end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
             'distance_status' => 'pending',
         ]);
 
@@ -48,18 +48,19 @@ class RouteService
         $this->ensureRouteCanBeChanged($route);
 
         $payload = Arr::only($data, ['started_at']);
+        $user = $route->user;
 
         if (array_key_exists('start_place_id', $data)) {
             $payload = [
                 ...$payload,
-                'start_address_id' => $this->resolveAddress('start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
+                'start_address_id' => $this->resolveAddress($user, 'start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
             ];
         }
 
         if (array_key_exists('end_place_id', $data)) {
             $payload = [
                 ...$payload,
-                'end_address_id' => $this->resolveAddress('end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
+                'end_address_id' => $this->resolveAddress($user, 'end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
             ];
         }
 
@@ -99,10 +100,10 @@ class RouteService
         }
     }
 
-    private function resolveAddress(string $prefix, string $placeId, ?string $sessionToken): Address
+    private function resolveAddress(User $user, string $prefix, string $placeId, ?string $sessionToken): Address
     {
         try {
-            return $this->addresses->resolvePlace($placeId, $sessionToken);
+            return $this->addresses->resolvePlace($user, $placeId, $sessionToken);
         } catch (InvalidAddressException $exception) {
             throw ValidationException::withMessages([
                 $prefix.'_place_id' => $exception->getMessage(),

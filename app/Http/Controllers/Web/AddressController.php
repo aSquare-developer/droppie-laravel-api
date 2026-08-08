@@ -21,6 +21,7 @@ class AddressController extends Controller
         try {
             return response()->json([
                 'data' => $addresses->autocomplete(
+                    $request->user(),
                     $validated['input'],
                     $validated['session_token'] ?? null
                 ),
@@ -42,6 +43,7 @@ class AddressController extends Controller
         try {
             return response()->json([
                 'data' => $addresses->validatePlace(
+                    $request->user(),
                     $validated['place_id'],
                     $validated['session_token'] ?? null
                 ),

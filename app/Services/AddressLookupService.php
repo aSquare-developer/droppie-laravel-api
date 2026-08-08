@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Address;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class AddressLookupService
@@ -15,7 +16,7 @@ class AddressLookupService
     /**
      * @return array<int, array<string, string|null>>
      */
-    public function autocomplete(string $input, ?string $sessionToken = null): array
+    public function autocomplete(User $user, string $input, ?string $sessionToken = null): array
     {
         $input = trim($input);
 
@@ -23,7 +24,7 @@ class AddressLookupService
             return [];
         }
 
-        $local = $this->localSuggestions($input);
+        $local = $this->localSuggestions($user, $input);
 
         if ($local->isNotEmpty()) {
             return $local
@@ -35,39 +36,43 @@ class AddressLookupService
         return $this->google->autocomplete($input, $sessionToken);
     }
 
-    public function resolvePlace(string $placeId, ?string $sessionToken = null): Address
+    public function resolvePlace(User $user, string $placeId, ?string $sessionToken = null): Address
     {
         $placeId = trim($placeId);
+        $address = null;
 
         if ($placeId !== '') {
-            $local = Address::query()
+            $address = Address::query()
                 ->where('place_id', $placeId)
                 ->first();
-
-            if ($local) {
-                return $local;
-            }
         }
 
-        return $this->store($this->google->validatePlace($placeId, $sessionToken));
+        $address ??= $this->store($this->google->validatePlace($placeId, $sessionToken));
+
+        $this->recordUsage($user, $address);
+
+        return $address;
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function validatePlace(string $placeId, ?string $sessionToken = null): array
+    public function validatePlace(User $user, string $placeId, ?string $sessionToken = null): array
     {
-        return $this->toPayload($this->resolvePlace($placeId, $sessionToken));
+        return $this->toPayload($this->resolvePlace($user, $placeId, $sessionToken));
     }
 
     /**
      * @return Collection<int, Address>
      */
-    private function localSuggestions(string $input): Collection
+    private function localSuggestions(User $user, string $input): Collection
     {
         $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $input).'%';
 
         return Address::query()
+            ->select('addresses.*')
+            ->join('address_usages', 'address_usages.address_id', '=', 'addresses.id')
+            ->where('address_usages.user_id', $user->id)
             ->whereNotNull('place_id')
             ->where(function ($query) use ($like): void {
                 $query
@@ -76,9 +81,24 @@ class AddressLookupService
                     ->orWhere('city', 'like', $like)
                     ->orWhere('street', 'like', $like);
             })
-            ->orderByDesc('updated_at')
+            ->orderByDesc('address_usages.last_used_at')
+            ->orderByDesc('address_usages.use_count')
             ->limit(8)
             ->get();
+    }
+
+    private function recordUsage(User $user, Address $address): void
+    {
+        $usage = $user->addressUsages()->firstOrCreate([
+            'address_id' => $address->id,
+        ], [
+            'use_count' => 0,
+            'last_used_at' => now(),
+        ]);
+
+        $usage->increment('use_count', 1, [
+            'last_used_at' => now(),
+        ]);
     }
 
     /**
