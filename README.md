@@ -104,6 +104,12 @@ Redis users can run Laravel Horizon:
 php artisan horizon
 ```
 
+Production deploys run `queue:restart` and `horizon:terminate`, so workers pick up the new code. Run workers under a process manager such as Supervisor or systemd so they are started again automatically.
+
+## API Tokens
+
+Sanctum API tokens expire after `SANCTUM_TOKEN_EXPIRATION` minutes (default 30 days). Clients must log in again once a token has expired.
+
 ## Tests
 
 ```bash
