@@ -48,7 +48,15 @@ class SocialLoginService
                     'password' => Hash::make(Str::random(64)),
                 ])->save();
             } elseif ($user->email_verified_at === null) {
-                $user->forceFill(['email_verified_at' => now()])->save();
+                // The local account was never proven to belong to the email owner (registration does not
+                // verify email), so whoever created it may know its password. Drop that password and any
+                // API tokens before linking, otherwise they would keep access to the Google owner's account.
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                    'password' => Hash::make(Str::random(64)),
+                    'remember_token' => null,
+                ])->save();
+                $user->tokens()->delete();
             }
 
             [$firstName, $lastName] = $this->nameParts($googleUser, $rawUser);
