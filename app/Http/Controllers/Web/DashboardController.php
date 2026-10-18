@@ -23,16 +23,10 @@ class DashboardController extends Controller
             $query->where(function ($q) use ($search): void {
                 $q
                     ->whereHas('startAddress', function ($addressQuery) use ($search): void {
-                        $addressQuery
-                            ->where('formatted_address', 'like', '%'.$search.'%')
-                            ->orWhere('city', 'like', '%'.$search.'%')
-                            ->orWhere('postal_code', 'like', '%'.$search.'%');
+                        $addressQuery->matchingText($search);
                     })
                     ->orWhereHas('endAddress', function ($addressQuery) use ($search): void {
-                        $addressQuery
-                            ->where('formatted_address', 'like', '%'.$search.'%')
-                            ->orWhere('city', 'like', '%'.$search.'%')
-                            ->orWhere('postal_code', 'like', '%'.$search.'%');
+                        $addressQuery->matchingText($search);
                     });
             });
         }
