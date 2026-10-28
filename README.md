@@ -106,6 +106,8 @@ php artisan horizon
 
 Production deploys run `queue:restart` and `horizon:terminate`, so workers pick up the new code. Run workers under a process manager such as Supervisor or systemd so they are started again automatically.
 
+Routes stuck in `pending` or `processing` (for example after a worker crash) are marked as failed by `php artisan routes:recover-stuck` after 60 minutes (`--minutes` changes this). It is scheduled every ten minutes, so the server needs the Laravel scheduler running (`php artisan schedule:run` from cron every minute).
+
 ## API Tokens
 
 Sanctum API tokens expire after `SANCTUM_TOKEN_EXPIRATION` minutes (default 30 days). Clients must log in again once a token has expired.
