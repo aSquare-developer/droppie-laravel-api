@@ -49,6 +49,23 @@ class Route extends Model
         ];
     }
 
+    /**
+     * Resolve {route} only among the authenticated user's routes, so another user's route id
+     * returns 404 instead of revealing that it exists with a 403.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        $user = request()->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        return $user->routes()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
+    }
+
     public function isDistanceCalculationInProgress(): bool
     {
         return $this->distance_status?->isInProgress() ?? false;
