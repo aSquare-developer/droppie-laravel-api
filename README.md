@@ -120,6 +120,12 @@ vendor/bin/pint --test
 npm run build
 ```
 
+Tests use in-memory SQLite by default. Production runs on PostgreSQL, and CI also runs the suite against it. To do the same locally, point the `DB_*` variables at an empty test database:
+
+```bash
+DB_CONNECTION=pgsql DB_DATABASE=droppie_test DB_USERNAME=postgres DB_PASSWORD=postgres vendor/bin/pest
+```
+
 ## Production Deployment
 
 Pushes to `main` run tests, build a production release, and deploy it through `.github/workflows/deploy-production.yml`.
