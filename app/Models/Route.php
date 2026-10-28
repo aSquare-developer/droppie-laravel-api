@@ -6,7 +6,6 @@ use App\Enums\DistanceStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use LogicException;
 
 class Route extends Model
 {
@@ -20,13 +19,9 @@ class Route extends Model
             }
 
             $route->vehicle_id = User::query()
-                ->find($route->user_id)
-                ?->activeVehicle()
-                ->value('id');
-
-            if (! $route->vehicle_id) {
-                throw new LogicException('An active vehicle is required to create a route.');
-            }
+                ->findOrFail($route->user_id)
+                ->requireActiveVehicle()
+                ->id;
         });
     }
 

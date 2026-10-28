@@ -23,13 +23,7 @@ class RouteService
 
     public function createRoute(User $user, array $data): Route
     {
-        $vehicle = $user->activeVehicle()->first();
-
-        if (! $vehicle) {
-            throw ValidationException::withMessages([
-                'vehicle' => 'Add an active vehicle to the profile before creating a route.',
-            ]);
-        }
+        $vehicle = $user->requireActiveVehicle();
 
         $route = $user->routes()->create([
             ...Arr::only($data, ['started_at']),
