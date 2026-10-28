@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DistanceStatus;
 use App\Exceptions\AddressLookupException;
 use App\Exceptions\InvalidAddressException;
 use App\Jobs\CalculateRouteDistance;
@@ -35,7 +36,7 @@ class RouteService
             'vehicle_id' => $vehicle->id,
             'start_address_id' => $this->resolveAddress($user, 'start', $data['start_place_id'], $data['start_address_session_token'] ?? null)->id,
             'end_address_id' => $this->resolveAddress($user, 'end', $data['end_place_id'], $data['end_address_session_token'] ?? null)->id,
-            'distance_status' => 'pending',
+            'distance_status' => DistanceStatus::Pending,
         ]);
 
         CalculateRouteDistance::dispatch($route);
@@ -73,7 +74,7 @@ class RouteService
 
         if ($addressesChanged) {
             $route->distance_km = null;
-            $route->distance_status = 'pending';
+            $route->distance_status = DistanceStatus::Pending;
             $route->distance_error = null;
         }
 

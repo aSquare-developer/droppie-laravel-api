@@ -1,5 +1,5 @@
 @php
-    $status = $route->distance_status ?: 'pending';
+    $status = ($route->distance_status ?? \App\Enums\DistanceStatus::Pending)->value;
     $locked = $route->isDistanceCalculationInProgress();
 @endphp
 

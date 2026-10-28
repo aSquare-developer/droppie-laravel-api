@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DistanceStatus;
 use App\Exceptions\GoogleRouteException;
 use App\Jobs\CalculateRouteDistance;
 use App\Models\Route;
@@ -27,7 +28,7 @@ it('marks permanent google route errors as failed without retrying the job', fun
     (new CalculateRouteDistance($route))->handle($service);
 
     expect($route->fresh())
-        ->distance_status->toBe('failed')
+        ->distance_status->toBe(DistanceStatus::Failed)
         ->distance_error->toBe('No drivable route was found between the selected addresses.');
 });
 
@@ -49,7 +50,7 @@ it('throws retryable google route errors so the queue can retry the job', functi
     expect(fn () => (new CalculateRouteDistance($route))->handle($service))
         ->toThrow(GoogleRouteException::class);
 
-    expect($route->fresh()->distance_status)->toBe('processing');
+    expect($route->fresh()->distance_status)->toBe(DistanceStatus::Processing);
 });
 
 it('does not expose unexpected technical errors to users', function () {
@@ -61,6 +62,6 @@ it('does not expose unexpected technical errors to users', function () {
     (new CalculateRouteDistance($route))->failed(new RuntimeException('Secret technical detail'));
 
     expect($route->fresh())
-        ->distance_status->toBe('failed')
+        ->distance_status->toBe(DistanceStatus::Failed)
         ->distance_error->toBe('Unable to calculate route distance.');
 });

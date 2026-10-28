@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\DistanceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Route as TripRoute;
 use Illuminate\Http\Request;
@@ -69,7 +70,7 @@ class DashboardController extends Controller
                 'sort' => $sort,
             ],
             'editingRoute' => $editingRoute,
-            'statusLabels' => RouteStatusController::STATUS_LABELS,
+            'statusLabels' => DistanceStatus::labels(),
         ]);
     }
 }

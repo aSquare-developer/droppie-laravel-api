@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DistanceStatus;
 use App\Models\TripReport;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -38,7 +39,7 @@ class RouteReportService
                 ->where('vehicle_id', $vehicle->id)
                 ->whereDate('started_at', '>=', $from)
                 ->whereDate('started_at', '<=', $to)
-                ->where('distance_status', 'completed')
+                ->where('distance_status', DistanceStatus::Completed)
                 ->orderBy('started_at')
                 ->orderBy('id')
                 ->get();

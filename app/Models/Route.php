@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DistanceStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,12 +45,13 @@ class Route extends Model
     {
         return [
             'started_at' => 'date',
+            'distance_status' => DistanceStatus::class,
         ];
     }
 
     public function isDistanceCalculationInProgress(): bool
     {
-        return in_array($this->distance_status, ['pending', 'processing'], true);
+        return $this->distance_status?->isInProgress() ?? false;
     }
 
     public function user(): BelongsTo
