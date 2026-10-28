@@ -67,20 +67,12 @@ class AddressLookupService
      */
     private function localSuggestions(User $user, string $input): Collection
     {
-        $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $input).'%';
-
         return Address::query()
             ->select('addresses.*')
             ->join('address_usages', 'address_usages.address_id', '=', 'addresses.id')
             ->where('address_usages.user_id', $user->id)
             ->whereNotNull('place_id')
-            ->where(function ($query) use ($like): void {
-                $query
-                    ->where('formatted_address', 'like', $like)
-                    ->orWhere('postal_code', 'like', $like)
-                    ->orWhere('city', 'like', $like)
-                    ->orWhere('street', 'like', $like);
-            })
+            ->matchingText($input, ['formatted_address', 'postal_code', 'city', 'street'])
             ->orderByDesc('address_usages.last_used_at')
             ->orderByDesc('address_usages.use_count')
             ->limit(8)

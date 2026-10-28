@@ -21,6 +21,9 @@ pest()->extend(TestCase::class)
     // ->use(RefreshDatabase::class)
     ->in('Feature');
 
+// Unit tests boot the application for config, cache and HTTP fakes, but never touch the database.
+pest()->extend(TestCase::class)->in('Unit');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
@@ -49,6 +50,18 @@ class User extends Authenticatable
     public function activeVehicle(): HasOne
     {
         return $this->hasOne(Vehicle::class)->where('is_active', true);
+    }
+
+    /**
+     * The vehicle new routes are recorded for.
+     *
+     * @throws ValidationException when the user has no active vehicle
+     */
+    public function requireActiveVehicle(): Vehicle
+    {
+        return $this->activeVehicle()->first() ?? throw ValidationException::withMessages([
+            'vehicle' => 'Add an active vehicle to the profile before creating a route.',
+        ]);
     }
 
     public function routes(): HasMany

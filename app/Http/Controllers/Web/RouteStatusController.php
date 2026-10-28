@@ -2,19 +2,13 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\DistanceStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RouteStatusController extends Controller
 {
-    public const STATUS_LABELS = [
-        'pending' => 'Queued',
-        'processing' => 'Calculating',
-        'completed' => 'Completed',
-        'failed' => 'Failed',
-    ];
-
     public function index(Request $request): JsonResponse
     {
         $ids = collect(explode(',', (string) $request->query('ids')))
@@ -39,7 +33,7 @@ class RouteStatusController extends Controller
                 'distance_km' => $route->distance_km,
                 'distance_label' => $this->formatDistance($route->distance_km),
                 'distance_status' => $route->distance_status,
-                'distance_status_label' => self::STATUS_LABELS[$route->distance_status] ?? $route->distance_status,
+                'distance_status_label' => ($route->distance_status ?? DistanceStatus::Pending)->label(),
                 'distance_error' => $route->distance_error,
                 'locked' => $route->isDistanceCalculationInProgress(),
             ])->values(),

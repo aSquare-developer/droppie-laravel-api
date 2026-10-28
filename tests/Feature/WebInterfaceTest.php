@@ -180,3 +180,22 @@ function webAddressPayload(string $placeId, string $formattedAddress): array
         'longitude' => 24.94,
     ];
 }
+
+it('shows a form error instead of a conflict page when deleting a route being calculated', function (string $status) {
+    $user = User::factory()->create();
+    $route = Route::factory()->create([
+        'user_id' => $user->id,
+        'distance_status' => $status,
+    ]);
+
+    $this
+        ->actingAs($user)
+        ->from(route('dashboard'))
+        ->delete(route('web.routes.destroy', $route))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHasErrors([
+            'route' => 'Route cannot be edited or deleted while distance is being calculated.',
+        ]);
+
+    $this->assertDatabaseHas('routes', ['id' => $route->id]);
+})->with(['pending', 'processing']);

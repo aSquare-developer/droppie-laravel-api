@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\DistanceStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use LogicException;
 
 class Route extends Model
 {
@@ -19,13 +19,9 @@ class Route extends Model
             }
 
             $route->vehicle_id = User::query()
-                ->find($route->user_id)
-                ?->activeVehicle()
-                ->value('id');
-
-            if (! $route->vehicle_id) {
-                throw new LogicException('An active vehicle is required to create a route.');
-            }
+                ->findOrFail($route->user_id)
+                ->requireActiveVehicle()
+                ->id;
         });
     }
 
@@ -44,12 +40,30 @@ class Route extends Model
     {
         return [
             'started_at' => 'date',
+            'distance_status' => DistanceStatus::class,
         ];
+    }
+
+    /**
+     * Resolve {route} only among the authenticated user's routes, so another user's route id
+     * returns 404 instead of revealing that it exists with a 403.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        $user = request()->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        return $user->routes()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
     }
 
     public function isDistanceCalculationInProgress(): bool
     {
-        return in_array($this->distance_status, ['pending', 'processing'], true);
+        return $this->distance_status?->isInProgress() ?? false;
     }
 
     public function user(): BelongsTo
