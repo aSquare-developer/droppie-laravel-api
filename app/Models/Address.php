@@ -37,6 +37,8 @@ class Address extends Model
      *
      * LIKE is case-sensitive on PostgreSQL but not on SQLite, so both sides are lowercased
      * and the term is escaped explicitly to behave the same in production and in tests.
+     * "!" is the escape character because a backslash literal makes PDO's pgsql driver
+     * misread the query and lose the "?" placeholder.
      *
      * @param  array<int, string>  $columns
      */
@@ -46,14 +48,14 @@ class Address extends Model
         'postal_code',
     ]): Builder
     {
-        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($term)).'%';
+        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($term)).'%';
         $model = $query->getModel();
         $grammar = $model->getConnection()->getQueryGrammar();
 
         return $query->where(function (Builder $query) use ($columns, $like, $model, $grammar): void {
             foreach ($columns as $column) {
                 $query->orWhereRaw(
-                    'LOWER('.$grammar->wrap($model->getTable().'.'.$column).") LIKE ? ESCAPE '\\'",
+                    'LOWER('.$grammar->wrap($model->getTable().'.'.$column).") LIKE ? ESCAPE '!'",
                     [$like]
                 );
             }

@@ -15,6 +15,17 @@ it('matches addresses regardless of letter case and treats wildcards literally',
     expect(Address::query()->matchingText('TARTU')->pluck('id')->all())->toBe([$tartu->id]);
     expect(Address::query()->matchingText('%')->count())->toBe(0);
     expect(Address::query()->matchingText('t_llinn')->count())->toBe(0);
+    expect(Address::query()->matchingText('!')->count())->toBe(0);
+    expect(Address::query()->matchingText('\\')->count())->toBe(0);
+});
+
+it('matches the escape characters themselves literally', function () {
+    $odd = Address::factory()->create(['formatted_address' => 'Pood "100%!" \\ Ladu_1, Tallinn', 'city' => 'Tallinn']);
+    Address::factory()->create(['formatted_address' => 'Pood 100 Ladu 1, Tallinn', 'city' => 'Tallinn']);
+
+    foreach (['100%!', '\\ ladu_1', 'LADU_1'] as $term) {
+        expect(Address::query()->matchingText($term, ['formatted_address'])->pluck('id')->all())->toBe([$odd->id]);
+    }
 });
 
 it('searches own routes case-insensitively through the api', function () {
