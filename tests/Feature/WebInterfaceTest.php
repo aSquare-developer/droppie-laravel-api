@@ -202,3 +202,28 @@ it('shows a form error instead of a conflict page when deleting a route being ca
 
     $this->assertDatabaseHas('routes', ['id' => $route->id]);
 })->with(['pending', 'processing']);
+
+it('prefills the trip date with the date of the last added route', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertSee('name="started_at" type="date" required value="'.now()->toDateString().'"', false);
+
+    Route::factory()->create(['user_id' => $user->id, 'started_at' => '2026-02-10', 'created_at' => now()->subDay()]);
+    Route::factory()->create(['user_id' => $user->id, 'started_at' => '2026-02-08', 'created_at' => now()]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertSee('name="started_at" type="date" required value="2026-02-08"', false);
+});
+
+it('keeps the edited route date when editing', function () {
+    $user = User::factory()->create();
+    $editing = Route::factory()->create(['user_id' => $user->id, 'started_at' => '2026-01-15', 'created_at' => now()->subDay()]);
+    Route::factory()->create(['user_id' => $user->id, 'started_at' => '2026-02-08', 'created_at' => now()]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['edit' => $editing->id]))
+        ->assertSee('name="started_at" type="date" required value="2026-01-15"', false);
+});

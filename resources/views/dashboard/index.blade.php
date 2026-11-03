@@ -105,7 +105,7 @@
 
                     <label>
                         <span>Trip date</span>
-                        <input name="started_at" type="date" required value="{{ old('started_at', $editingRoute?->started_at?->toDateString() ?? now()->toDateString()) }}">
+                        <input name="started_at" type="date" required value="{{ old('started_at', $editingRoute?->started_at?->toDateString() ?? $defaultTripDate) }}">
                     </label>
 
                     <button class="primary-action" type="submit">{{ $editingRoute ? 'Save' : 'Add route' }}</button>
