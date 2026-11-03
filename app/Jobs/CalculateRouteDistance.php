@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\DistanceStatus;
 use App\Exceptions\GoogleRouteException;
 use App\Models\Route;
 use App\Services\GoogleRouteService;
@@ -41,7 +42,7 @@ class CalculateRouteDistance implements ShouldQueue
         }
 
         $this->route->update([
-            'distance_status' => 'processing',
+            'distance_status' => DistanceStatus::Processing,
             'distance_error' => null,
         ]);
 
@@ -64,7 +65,7 @@ class CalculateRouteDistance implements ShouldQueue
 
         $this->route->update([
             'distance_km' => $distanceKm,
-            'distance_status' => 'completed',
+            'distance_status' => DistanceStatus::Completed,
         ]);
     }
 
@@ -77,7 +78,7 @@ class CalculateRouteDistance implements ShouldQueue
         ]);
 
         $this->route->update([
-            'distance_status' => 'failed',
+            'distance_status' => DistanceStatus::Failed,
             'distance_error' => $exception instanceof GoogleRouteException
                 ? $exception->getMessage()
                 : 'Unable to calculate route distance.',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\DistanceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Route as TripRoute;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $user = $request->user()->loadMissing(['profile', 'activeVehicle']);
+        $user = $request->user()->loadMissing('activeVehicle');
         $search = trim((string) $request->query('search', ''));
         $sort = (string) $request->query('sort', '-created_at');
 
@@ -23,16 +24,10 @@ class DashboardController extends Controller
             $query->where(function ($q) use ($search): void {
                 $q
                     ->whereHas('startAddress', function ($addressQuery) use ($search): void {
-                        $addressQuery
-                            ->where('formatted_address', 'like', '%'.$search.'%')
-                            ->orWhere('city', 'like', '%'.$search.'%')
-                            ->orWhere('postal_code', 'like', '%'.$search.'%');
+                        $addressQuery->matchingText($search);
                     })
                     ->orWhereHas('endAddress', function ($addressQuery) use ($search): void {
-                        $addressQuery
-                            ->where('formatted_address', 'like', '%'.$search.'%')
-                            ->orWhere('city', 'like', '%'.$search.'%')
-                            ->orWhere('postal_code', 'like', '%'.$search.'%');
+                        $addressQuery->matchingText($search);
                     });
             });
         }
@@ -75,7 +70,7 @@ class DashboardController extends Controller
                 'sort' => $sort,
             ],
             'editingRoute' => $editingRoute,
-            'statusLabels' => RouteStatusController::STATUS_LABELS,
+            'statusLabels' => DistanceStatus::labels(),
         ]);
     }
 }

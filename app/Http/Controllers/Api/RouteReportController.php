@@ -4,14 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\RouteReportService;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
+use App\Services\TripReportPdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class RouteReportController extends Controller
 {
-    public function download(Request $request, RouteReportService $routeReportService): Response
+    public function download(Request $request, RouteReportService $routeReportService, TripReportPdf $pdf): Response
     {
         $validated = $request->validate([
             'from' => ['required', 'date'],
@@ -24,22 +23,6 @@ class RouteReportController extends Controller
             $validated['to']
         );
 
-        $fromFormatted = Carbon::parse($report->period_from)->format('d.m.Y');
-        $toFormatted = Carbon::parse($report->period_to)->format('d.m.Y');
-
-        $pdf = Pdf::loadView('pdf.routes-report', [
-            'report' => $report,
-            'from' => $fromFormatted,
-            'to' => $toFormatted,
-        ])->setPaper('a4', 'landscape');
-
-        $content = $pdf->output();
-
-        $filename = 'routes-report-'.$fromFormatted.'-'.$toFormatted.'.pdf';
-
-        return response($content, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-        ]);
+        return $pdf->download($report);
     }
 }

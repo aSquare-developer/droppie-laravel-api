@@ -32,7 +32,7 @@ it('shows blade auth screens and registers a web session user', function () {
     $this->assertDatabaseHas('vehicles', ['is_active' => true]);
 });
 
-it('renders the dashboard with blade route and profile sections', function () {
+it('renders the dashboard with only the metrics, route form and trip history', function () {
     $user = User::factory()
         ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
         ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1000.2])
@@ -50,11 +50,13 @@ it('renders the dashboard with blade route and profile sections', function () {
         ->get(route('dashboard'))
         ->assertOk()
         ->assertSee('New route')
-        ->assertSee('Profile')
-        ->assertSee('PDF report')
         ->assertSee('Routes')
+        ->assertSee('Kilometers')
         ->assertSee('12.3 km')
-        ->assertSee('Mari');
+        ->assertSee('Mari')
+        ->assertDontSee('Save profile')
+        ->assertDontSee('Download PDF')
+        ->assertDontSee('Add an active vehicle to your profile');
 });
 
 it('updates profile fields through the web form and keeps email immutable', function () {
@@ -73,7 +75,8 @@ it('updates profile fields through the web form and keeps email immutable', func
             'car_mileage' => 92000.5,
             'country' => 'Estonia',
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('account'))
+        ->assertSessionHas('success', 'Profile saved.');
 
     $this->assertDatabaseHas('users', [
         'id' => $user->id,
@@ -180,3 +183,22 @@ function webAddressPayload(string $placeId, string $formattedAddress): array
         'longitude' => 24.94,
     ];
 }
+
+it('shows a form error instead of a conflict page when deleting a route being calculated', function (string $status) {
+    $user = User::factory()->create();
+    $route = Route::factory()->create([
+        'user_id' => $user->id,
+        'distance_status' => $status,
+    ]);
+
+    $this
+        ->actingAs($user)
+        ->from(route('dashboard'))
+        ->delete(route('web.routes.destroy', $route))
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHasErrors([
+            'route' => 'Route cannot be edited or deleted while distance is being calculated.',
+        ]);
+
+    $this->assertDatabaseHas('routes', ['id' => $route->id]);
+})->with(['pending', 'processing']);

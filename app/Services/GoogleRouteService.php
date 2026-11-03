@@ -32,14 +32,14 @@ class GoogleRouteService
         $cachedDistance = Cache::get($cacheKey);
 
         if ($cachedDistance !== null) {
-            Log::info('Route distance cache hit', [
+            Log::debug('Route distance cache hit', [
                 'cache_key' => $cacheKey,
             ]);
 
             return (float) $cachedDistance;
         }
 
-        Log::info('Route distance cache miss', [
+        Log::debug('Route distance cache miss', [
             'cache_key' => $cacheKey,
         ]);
 

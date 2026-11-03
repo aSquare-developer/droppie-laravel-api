@@ -272,6 +272,8 @@ jobs:
           php artisan migrate --force
           php artisan storage:link || true
           php artisan optimize
+          php artisan queue:restart
+          php artisan horizon:terminate || true
           php artisan up
 
           trap - EXIT

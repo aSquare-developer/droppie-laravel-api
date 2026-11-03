@@ -104,12 +104,26 @@ Redis users can run Laravel Horizon:
 php artisan horizon
 ```
 
+Production deploys run `queue:restart` and `horizon:terminate`, so workers pick up the new code. Run workers under a process manager such as Supervisor or systemd so they are started again automatically.
+
+Routes stuck in `pending` or `processing` (for example after a worker crash) are marked as failed by `php artisan routes:recover-stuck` after 60 minutes (`--minutes` changes this). It is scheduled every ten minutes, so the server needs the Laravel scheduler running (`php artisan schedule:run` from cron every minute).
+
+## API Tokens
+
+Sanctum API tokens expire after `SANCTUM_TOKEN_EXPIRATION` minutes (default 30 days). Clients must log in again once a token has expired.
+
 ## Tests
 
 ```bash
 vendor/bin/pest
 vendor/bin/pint --test
 npm run build
+```
+
+Tests use in-memory SQLite by default. Production runs on PostgreSQL, and CI also runs the suite against it. To do the same locally, point the `DB_*` variables at an empty test database:
+
+```bash
+DB_CONNECTION=pgsql DB_DATABASE=droppie_test DB_USERNAME=postgres DB_PASSWORD=postgres vendor/bin/pest
 ```
 
 ## Production Deployment

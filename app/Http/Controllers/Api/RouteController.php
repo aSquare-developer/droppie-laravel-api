@@ -26,16 +26,10 @@ class RouteController extends Controller
             $query->where(function ($q) use ($request) {
                 $q
                     ->whereHas('startAddress', function ($addressQuery) use ($request) {
-                        $addressQuery
-                            ->where('formatted_address', 'like', '%'.$request->search.'%')
-                            ->orWhere('city', 'like', '%'.$request->search.'%')
-                            ->orWhere('postal_code', 'like', '%'.$request->search.'%');
+                        $addressQuery->matchingText($request->search);
                     })
                     ->orWhereHas('endAddress', function ($addressQuery) use ($request) {
-                        $addressQuery
-                            ->where('formatted_address', 'like', '%'.$request->search.'%')
-                            ->orWhere('city', 'like', '%'.$request->search.'%')
-                            ->orWhere('postal_code', 'like', '%'.$request->search.'%');
+                        $addressQuery->matchingText($request->search);
                     });
             });
         }

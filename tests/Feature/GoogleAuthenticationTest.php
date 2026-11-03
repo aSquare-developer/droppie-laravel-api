@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 
@@ -92,4 +93,50 @@ it('rejects a google account with an unverified email', function () {
 
     $this->assertGuest();
     $this->assertDatabaseMissing('users', ['email' => 'unverified@example.com']);
+});
+
+it('revokes the password and api tokens of an unverified local account when linking google', function () {
+    $user = User::factory()->unverified()->create([
+        'email' => 'victim@example.com',
+        'password' => 'attacker-chosen-password',
+    ]);
+    $user->createToken('attacker');
+
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'google-victim-123',
+        'email' => 'victim@example.com',
+        'email_verified' => true,
+        'verified_email' => true,
+        'name' => 'Victim User',
+    ]));
+
+    $this->get(route('oauth.google.callback'))
+        ->assertRedirect(route('dashboard'));
+
+    $user->refresh();
+
+    expect(Hash::check('attacker-chosen-password', $user->password))->toBeFalse();
+    expect($user->tokens()->count())->toBe(0);
+});
+
+it('keeps the password of an already verified local account when linking google', function () {
+    $user = User::factory()->create([
+        'email' => 'verified@example.com',
+        'password' => 'known-password',
+    ]);
+    $user->createToken('mobile');
+
+    Socialite::fake('google', SocialiteUser::fake([
+        'id' => 'google-verified-123',
+        'email' => 'verified@example.com',
+        'email_verified' => true,
+        'verified_email' => true,
+        'name' => 'Verified User',
+    ]));
+
+    $this->get(route('oauth.google.callback'))
+        ->assertRedirect(route('dashboard'));
+
+    expect(Hash::check('known-password', $user->fresh()->password))->toBeTrue();
+    expect($user->tokens()->count())->toBe(1);
 });
