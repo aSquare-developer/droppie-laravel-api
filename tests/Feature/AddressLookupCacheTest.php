@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\AddressLookupException;
 use App\Jobs\CalculateRouteDistance;
 use App\Models\Address;
 use App\Models\Route;
@@ -11,10 +12,31 @@ use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
-it('returns local address autocomplete suggestions before calling google', function () {
-    $user = User::factory()->create();
+function rememberAddress(User $user, array $attributes, int $useCount = 1): Address
+{
+    $address = Address::factory()->create($attributes);
+    $user->addressUsages()->create([
+        'address_id' => $address->id,
+        'use_count' => $useCount,
+        'last_used_at' => now(),
+    ]);
 
-    $address = Address::factory()->create([
+    return $address;
+}
+
+function googleSuggestion(string $placeId, string $description): array
+{
+    return [
+        'place_id' => $placeId,
+        'description' => $description,
+        'main_text' => strtok($description, ','),
+        'secondary_text' => null,
+    ];
+}
+
+it('lists history matches first and adds new google suggestions', function () {
+    $user = User::factory()->create();
+    rememberAddress($user, [
         'place_id' => 'known-place',
         'formatted_address' => 'Mannerheimintie 1, 00100 Helsinki, Finland',
         'postal_code' => '00100',
@@ -23,11 +45,40 @@ it('returns local address autocomplete suggestions before calling google', funct
         'street' => 'Mannerheimintie',
         'street_number' => '1',
     ]);
-    $user->addressUsages()->create([
-        'address_id' => $address->id,
-        'use_count' => 1,
-        'last_used_at' => now(),
-    ]);
+
+    $this->mock(GoogleAddressService::class, function ($mock): void {
+        $mock->shouldReceive('autocomplete')
+            ->once()
+            ->with('Mannerheimintie', 'session-1')
+            ->andReturn([
+                googleSuggestion('known-place', 'Mannerheimintie 1, Helsinki, Finland'),
+                googleSuggestion('new-place', 'Mannerheimintie 5, Helsinki, Finland'),
+            ]);
+    });
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->getJson('/api/addresses/autocomplete?input=Mannerheimintie&session_token=session-1')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.place_id', 'known-place')
+        ->assertJsonPath('data.0.description', 'Mannerheimintie 1, 00100 Helsinki, Finland')
+        ->assertJsonPath('data.0.main_text', 'Mannerheimintie 1')
+        ->assertJsonPath('data.0.source', 'history')
+        ->assertJsonPath('data.1.place_id', 'new-place')
+        ->assertJsonPath('data.1.source', 'google');
+});
+
+it('skips google when the history already has enough matches', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, 5) as $number) {
+        rememberAddress($user, [
+            'formatted_address' => "Mannerheimintie {$number}, 00100 Helsinki, Finland",
+            'street' => 'Mannerheimintie',
+            'street_number' => (string) $number,
+        ]);
+    }
 
     $this->mock(GoogleAddressService::class, function ($mock): void {
         $mock->shouldReceive('autocomplete')->never();
@@ -37,9 +88,55 @@ it('returns local address autocomplete suggestions before calling google', funct
         ->actingAs($user, 'sanctum')
         ->getJson('/api/addresses/autocomplete?input=Mannerheimintie')
         ->assertOk()
-        ->assertJsonPath('data.0.place_id', 'known-place')
-        ->assertJsonPath('data.0.description', 'Mannerheimintie 1, 00100 Helsinki, Finland')
-        ->assertJsonPath('data.0.main_text', 'Mannerheimintie 1');
+        ->assertJsonCount(5, 'data');
+});
+
+it('caps the merged suggestions at eight', function () {
+    $user = User::factory()->create();
+    rememberAddress($user, ['formatted_address' => 'Mannerheimintie 1, Helsinki', 'street' => 'Mannerheimintie']);
+
+    $this->mock(GoogleAddressService::class, function ($mock): void {
+        $mock->shouldReceive('autocomplete')->once()->andReturn(
+            collect(range(10, 20))->map(fn (int $n) => googleSuggestion("google-{$n}", "Mannerheimintie {$n}, Helsinki"))->all()
+        );
+    });
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->getJson('/api/addresses/autocomplete?input=Mannerheimintie')
+        ->assertOk()
+        ->assertJsonCount(8, 'data')
+        ->assertJsonPath('data.0.source', 'history');
+});
+
+it('falls back to history when google is unavailable', function () {
+    $user = User::factory()->create();
+    rememberAddress($user, ['place_id' => 'known-place', 'formatted_address' => 'Mannerheimintie 1, Helsinki', 'street' => 'Mannerheimintie']);
+
+    $this->mock(GoogleAddressService::class, function ($mock): void {
+        $mock->shouldReceive('autocomplete')->once()
+            ->andThrow(new AddressLookupException('Google Places Autocomplete is currently unavailable.'));
+    });
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->getJson('/api/addresses/autocomplete?input=Mannerheimintie')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.place_id', 'known-place');
+});
+
+it('reports google being unavailable when there is no history to show', function () {
+    $this->mock(GoogleAddressService::class, function ($mock): void {
+        $mock->shouldReceive('autocomplete')->once()
+            ->andThrow(new AddressLookupException('Google Places Autocomplete is currently unavailable.'));
+    });
+
+    $this
+        ->actingAs(User::factory()->create(), 'sanctum')
+        ->getJson('/api/addresses/autocomplete?input=Mannerheimintie')
+        ->assertStatus(503)
+        ->assertJsonPath('message', 'Google Places Autocomplete is currently unavailable.');
 });
 
 it('does not expose another users address history in autocomplete', function () {
@@ -61,7 +158,7 @@ it('does not expose another users address history in autocomplete', function () 
     $this->mock(GoogleAddressService::class, function ($mock): void {
         $mock
             ->shouldReceive('autocomplete')
-            ->once()
+            ->twice()
             ->with('Mannerheimintie', null)
             ->andReturn([]);
     });
