@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\GoogleRouteException;
 use App\Services\GoogleRouteService;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -65,4 +66,14 @@ it('caches each direction separately', function () {
     $service->getDistanceInKm('Tartu', 'Tallinn', 'place-tartu', 'place-tallinn');
 
     Http::assertSentCount(2);
+});
+
+it('makes a single google request per job try by default', function () {
+    Config::set('services.google.routes_max_attempts', 1);
+    Http::fake(['*' => Http::response(['error' => ['message' => 'Backend error']], 503)]);
+
+    expect(fn () => app(GoogleRouteService::class)->getDistanceInKm('Tallinn', 'Tartu', 'place-tallinn', 'place-tartu'))
+        ->toThrow(GoogleRouteException::class);
+
+    Http::assertSentCount(1);
 });

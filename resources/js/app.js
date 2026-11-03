@@ -181,7 +181,10 @@ function renderAddressSuggestions(field, suggestions) {
 
     container.innerHTML = suggestions.map((suggestion, index) => `
         <button type="button" data-address-suggestion="${index}">
-            <strong>${escapeHtml(suggestion.main_text || suggestion.description)}</strong>
+            <strong>
+                ${escapeHtml(suggestion.main_text || suggestion.description)}
+                ${suggestion.source === 'history' ? '<em class="suggestion-badge">Recent</em>' : ''}
+            </strong>
             ${suggestion.secondary_text ? `<span>${escapeHtml(suggestion.secondary_text)}</span>` : ''}
         </button>
     `).join('');

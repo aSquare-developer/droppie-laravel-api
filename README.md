@@ -90,9 +90,11 @@ Addresses are stored in the reusable `addresses` table. The `routes` table store
 
 The address catalog is shared only for `place_id` deduplication. Autocomplete history is stored in `address_usages` and scoped to the authenticated user, so one user cannot receive addresses previously entered by another user.
 
+Autocomplete lists the user's matching history first (marked "Recent") and asks Google Places only when the history has fewer than five matches; Google results already in the history are skipped. If Google is unavailable, the history matches are still returned.
+
 ## Queue
 
-Route distance calculation runs through the Laravel queue:
+Route distance calculation runs through the Laravel queue. Temporary Google Routes failures are retried by the queue (3 tries, 15 s and 60 s apart) with one HTTP attempt per try (`GOOGLE_ROUTES_MAX_ATTEMPTS=1`), so a route costs at most three Google requests during an outage:
 
 ```bash
 php artisan queue:work

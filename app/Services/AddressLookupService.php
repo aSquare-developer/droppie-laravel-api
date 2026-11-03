@@ -2,18 +2,29 @@
 
 namespace App\Services;
 
+use App\Exceptions\AddressLookupException;
 use App\Models\Address;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 class AddressLookupService
 {
+    /**
+     * History matches that make a Google lookup unnecessary.
+     */
+    private const HISTORY_COVERS_INPUT = 5;
+
+    private const MAX_SUGGESTIONS = 8;
+
     public function __construct(private readonly GoogleAddressService $google)
     {
         //
     }
 
     /**
+     * The user's own address history comes first. Google is asked only when the history
+     * has few matches, so new addresses with the same prefix still show up.
+     *
      * @return array<int, array<string, string|null>>
      */
     public function autocomplete(User $user, string $input, ?string $sessionToken = null): array
@@ -24,16 +35,33 @@ class AddressLookupService
             return [];
         }
 
-        $local = $this->localSuggestions($user, $input);
+        $local = $this->localSuggestions($user, $input)
+            ->map(fn (Address $address): array => $this->toSuggestion($address))
+            ->values();
 
-        if ($local->isNotEmpty()) {
-            return $local
-                ->map(fn (Address $address): array => $this->toSuggestion($address))
-                ->values()
-                ->all();
+        if ($local->count() >= self::HISTORY_COVERS_INPUT) {
+            return $local->all();
         }
 
-        return $this->google->autocomplete($input, $sessionToken);
+        try {
+            $google = $this->google->autocomplete($input, $sessionToken);
+        } catch (AddressLookupException $exception) {
+            if ($local->isEmpty()) {
+                throw $exception;
+            }
+
+            return $local->all();
+        }
+
+        $known = $local->pluck('place_id')->all();
+
+        return $local
+            ->concat(collect($google)
+                ->reject(fn (array $suggestion): bool => in_array($suggestion['place_id'], $known, true))
+                ->map(fn (array $suggestion): array => [...$suggestion, 'source' => 'google']))
+            ->take(self::MAX_SUGGESTIONS)
+            ->values()
+            ->all();
     }
 
     public function resolvePlace(User $user, string $placeId, ?string $sessionToken = null): Address
@@ -75,7 +103,7 @@ class AddressLookupService
             ->matchingText($input, ['formatted_address', 'postal_code', 'city', 'street'])
             ->orderByDesc('address_usages.last_used_at')
             ->orderByDesc('address_usages.use_count')
-            ->limit(8)
+            ->limit(self::MAX_SUGGESTIONS)
             ->get();
     }
 
@@ -126,6 +154,7 @@ class AddressLookupService
             'secondary_text' => collect([$address->postal_code, $address->city, $address->country])
                 ->filter()
                 ->implode(', '),
+            'source' => 'history',
         ];
     }
 

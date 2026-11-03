@@ -65,3 +65,10 @@ it('does not expose unexpected technical errors to users', function () {
         ->distance_status->toBe(DistanceStatus::Failed)
         ->distance_error->toBe('Unable to calculate route distance.');
 });
+
+it('retries temporary google failures only through the queue', function () {
+    $job = new CalculateRouteDistance(new Route);
+
+    expect($job->tries)->toBe(3)
+        ->and($job->backoff)->toBe([15, 60]);
+});
