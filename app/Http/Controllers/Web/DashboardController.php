@@ -59,6 +59,14 @@ class DashboardController extends Controller
             $this->authorize('update', $editingRoute);
         }
 
+        // New trips usually continue the last one entered, so start from its date.
+        $defaultTripDate = $user->routes()
+            ->latest('created_at')
+            ->latest('id')
+            ->first(['started_at'])
+            ?->started_at
+            ?->toDateString() ?? now()->toDateString();
+
         return view('dashboard.index', [
             'user' => $user,
             'routes' => $routes,
@@ -70,6 +78,7 @@ class DashboardController extends Controller
                 'sort' => $sort,
             ],
             'editingRoute' => $editingRoute,
+            'defaultTripDate' => $defaultTripDate,
             'statusLabels' => DistanceStatus::labels(),
         ]);
     }
