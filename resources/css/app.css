@@ -106,9 +106,10 @@ input[type="date"] {
     text-align: left;
 }
 
+/* iOS/iPadOS Safari draws the value in this box; give it the inner height (44px - 2px border) to center it. */
 input[type="date"]::-webkit-date-and-time-value {
-    min-height: 1.5em;
     margin: 0;
+    line-height: 42px;
     text-align: left;
 }
 
