@@ -92,6 +92,35 @@ textarea {
     resize: vertical;
 }
 
+/*
+ * Safari (macOS and iOS) renders date inputs natively: grey background, centered value,
+ * its own height, and an intrinsic min-width that pushes the field out of narrow panels.
+ * Reset that so date fields look and size like the text inputs.
+ */
+input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    text-align: left;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+    min-height: 1.5em;
+    margin: 0;
+    text-align: left;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+    padding: 0;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+}
+
 .readonly-field {
     background: var(--surface-soft);
     color: var(--muted);
