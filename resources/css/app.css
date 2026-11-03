@@ -93,6 +93,22 @@ textarea {
 }
 
 /*
+ * Native selects ignore min-height in Safari and draw their own arrows. Use the same
+ * height as the text inputs and an app-styled chevron instead.
+ */
+select {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 44px;
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2364716d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 14px center;
+    background-repeat: no-repeat;
+    background-size: 16px 16px;
+    cursor: pointer;
+}
+
+/*
  * Safari (macOS and iOS) renders date inputs natively: grey background, centered value,
  * its own height, and an intrinsic min-width that pushes the field out of narrow panels.
  * Reset that so date fields look and size like the text inputs.
@@ -856,6 +872,10 @@ label span {
 .filter-actions {
     display: flex;
     gap: 8px;
+}
+
+.filter-actions > * {
+    min-height: 44px;
 }
 
 .routes-list {
