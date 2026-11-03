@@ -14,9 +14,16 @@ class CalculateRouteDistance implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * Retries for temporary Google failures live here, not in the HTTP client, so a route
+     * costs at most $tries Google requests while Google is down.
+     */
     public int $tries = 3;
 
-    public int $backoff = 10;
+    /**
+     * @var array<int, int>
+     */
+    public array $backoff = [15, 60];
 
     public int $timeout = 45;
 
