@@ -13,6 +13,6 @@ class ProfileController extends Controller
     {
         $profiles->update($request->user(), $request->validated());
 
-        return back()->with('success', 'Profile saved.');
+        return redirect()->route('account')->with('success', 'Profile saved.');
     }
 }

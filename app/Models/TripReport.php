@@ -36,6 +36,23 @@ class TripReport extends Model
         ];
     }
 
+    /**
+     * Resolve {report} only among the authenticated user's reports, so another user's
+     * report id returns 404.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        $user = request()->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        return $user->tripReports()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\AccountController;
 use App\Http\Controllers\Web\AddressController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
@@ -35,6 +36,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/account', AccountController::class)->name('account');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/addresses/autocomplete', [AddressController::class, 'autocomplete'])
@@ -53,9 +55,14 @@ Route::middleware('auth')->group(function () {
         ->name('web.routes.update');
     Route::delete('/routes/{route}', [RouteController::class, 'destroy'])->name('web.routes.destroy');
 
+    Route::get('/reports', [RouteReportController::class, 'index'])->name('reports');
     Route::post('/reports/routes/pdf', [RouteReportController::class, 'download'])
         ->middleware('throttle:reports')
         ->name('web.reports.routes.pdf');
+    Route::get('/reports/{report}/pdf', [RouteReportController::class, 'show'])
+        ->middleware('throttle:reports')
+        ->whereNumber('report')
+        ->name('web.reports.pdf');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

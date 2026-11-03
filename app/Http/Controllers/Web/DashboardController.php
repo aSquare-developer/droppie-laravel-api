@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $user = $request->user()->loadMissing(['profile', 'activeVehicle']);
+        $user = $request->user()->loadMissing('activeVehicle');
         $search = trim((string) $request->query('search', ''));
         $sort = (string) $request->query('sort', '-created_at');
 
