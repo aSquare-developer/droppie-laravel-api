@@ -752,6 +752,7 @@ label span {
 
 .page-narrow {
     width: min(760px, 100%);
+    margin-inline: auto;
 }
 
 .form-note {
@@ -1045,12 +1046,17 @@ label span {
 }
 
 @media (max-width: 1180px) {
+    /* One centered column on tablets: top bar, metrics, form and list share one width. */
+    .app-shell {
+        width: min(920px, 100%);
+    }
+
     .workspace {
         grid-template-columns: 1fr;
     }
 
-    .control-panel {
-        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.65fr);
+    .page-narrow {
+        width: 100%;
     }
 }
 
@@ -1078,51 +1084,6 @@ label span {
 
     .filter-actions {
         grid-column: 1 / -1;
-    }
-
-    .control-panel {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 640px) {
-    .app-shell {
-        padding: 14px;
-    }
-
-    .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .user-block {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .user-block span {
-        max-width: 58vw;
-    }
-
-    .main-nav {
-        width: 100%;
-    }
-
-    .page-narrow .profile-form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .page-narrow .profile-form .secondary-action {
-        justify-self: stretch;
-    }
-
-    .nav-link {
-        flex: 1;
-        justify-content: center;
-    }
-
-    .metric-bar {
-        gap: 6px 16px;
     }
 
     .report-table thead {
@@ -1165,6 +1126,47 @@ label span {
     .report-table .actions {
         justify-content: flex-end;
         padding-top: 8px;
+    }
+}
+
+@media (max-width: 640px) {
+    .app-shell {
+        padding: 14px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .user-block {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .user-block span {
+        max-width: 58vw;
+    }
+
+    .main-nav {
+        width: 100%;
+    }
+
+    .page-narrow .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-narrow .profile-form .secondary-action {
+        justify-self: stretch;
+    }
+
+    .nav-link {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .metric-bar {
+        gap: 6px 16px;
     }
 
     .filters-bar {
