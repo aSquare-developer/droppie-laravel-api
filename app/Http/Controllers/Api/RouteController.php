@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListRoutesRequest;
 use App\Http\Requests\StoreRouteRequest;
 use App\Http\Requests\UpdateRouteRequest;
 use App\Http\Resources\RouteResource;
 use App\Models\Route;
 use App\Services\RouteService;
-use Illuminate\Http\Request;
 
 class RouteController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(ListRoutesRequest $request)
     {
 
         $query = $request->user()
