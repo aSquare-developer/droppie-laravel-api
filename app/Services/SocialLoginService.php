@@ -38,7 +38,7 @@ class SocialLoginService
                 return $socialAccount->user;
             }
 
-            $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+            $user = User::query()->whereEmail($email)->orderBy('id')->first();
 
             if ($user === null) {
                 $user = new User;

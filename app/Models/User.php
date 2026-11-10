@@ -6,11 +6,15 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -35,6 +39,42 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Emails are stored lowercased and trimmed, so letter case never creates a second account.
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => $value === null ? null : self::normalizeEmail($value),
+        );
+    }
+
+    public static function normalizeEmail(string $email): string
+    {
+        return Str::lower(trim($email));
+    }
+
+    /**
+     * Case-insensitive lookup that also finds accounts stored before emails were normalized.
+     */
+    public function scopeWhereEmail(Builder $query, string $email): Builder
+    {
+        return $query->whereRaw('LOWER(email) = ?', [self::normalizeEmail($email)]);
+    }
+
+    /**
+     * The account the email and password belong to. Older data may hold the same email in
+     * different letter case, so the password decides between such accounts.
+     */
+    public static function findByCredentials(string $email, string $password): ?self
+    {
+        return static::query()
+            ->whereEmail($email)
+            ->orderBy('id')
+            ->get()
+            ->first(fn (self $user): bool => Hash::check($password, $user->password));
     }
 
     public function profile(): HasOne
