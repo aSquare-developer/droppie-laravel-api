@@ -92,6 +92,12 @@ The address catalog is shared only for `place_id` deduplication. Autocomplete hi
 
 Autocomplete lists the user's matching history first (marked "Recent") and asks Google Places only when the history has fewer than five matches; Google results already in the history are skipped. If Google is unavailable, the history matches are still returned.
 
+## Trip Reports and Mileage
+
+The vehicle mileage in the profile is a baseline: the odometer reading at the end of the day it was entered (`vehicles.odometer_recorded_on`). The reading on any day is the baseline plus the completed trips of that vehicle after it, or minus the trips between that day and the baseline. Trip reports compute their start reading from it, so reports for any period agree with each other, whatever order they are generated in. Generating a report does not change the stored mileage.
+
+Reports are stored snapshots. Deleting one from the report history lets the same period be generated again with current data.
+
 ## Queue
 
 Route distance calculation runs through the Laravel queue. Temporary Google Routes failures are retried by the queue (3 tries, 15 s and 60 s apart) with one HTTP attempt per try (`GOOGLE_ROUTES_MAX_ATTEMPTS=1`), so a route costs at most three Google requests during an outage:

@@ -12,7 +12,7 @@ function reportReadyUser(float $odometer = 1000.0): User
 {
     return User::factory()
         ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
-        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => $odometer])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => $odometer, 'odometer_recorded_on' => '2026-05-31'])
         ->create();
 }
 
@@ -120,7 +120,7 @@ it('downloads a stored report again without creating a new one or changing the o
     ]);
 
     $report = app(RouteReportService::class)->getOrCreateReport($user, '2026-06-01', '2026-06-30');
-    expect($user->activeVehicle()->value('odometer_km'))->toBe(1012.3);
+    expect([$report->odometer_start_km, $report->odometer_end_km])->toBe([1000.0, 1012.3]);
 
     $response = $this->actingAs($user)
         ->get(route('web.reports.pdf', $report))
@@ -130,7 +130,7 @@ it('downloads a stored report again without creating a new one or changing the o
 
     expect($response->getContent())->toStartWith('%PDF')
         ->and(TripReport::query()->count())->toBe(1)
-        ->and($user->activeVehicle()->value('odometer_km'))->toBe(1012.3);
+        ->and($user->activeVehicle()->value('odometer_km'))->toBe(1000.0);
 });
 
 it('returns 404 for another user\'s report', function () {

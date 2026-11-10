@@ -30,7 +30,7 @@ it('keeps authentication data only in users', function () {
 it('calculates sequential odometer readings from the profile mileage', function () {
     $user = User::factory()
         ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
-        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1000.2])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1000.2, 'odometer_recorded_on' => '2026-05-31'])
         ->create();
     $startAddress = Address::factory()->create([
         'formatted_address' => 'Mannerheimintie 1, Helsinki',
@@ -92,10 +92,10 @@ it('prevents downloading a trip log when required profile data is missing', func
         ->assertJsonValidationErrors('profile');
 });
 
-it('downloads a trip log and updates the profile mileage to its ending reading', function () {
+it('downloads a trip log without changing the stored mileage', function () {
     $user = User::factory()
         ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
-        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1500.5])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 1500.5, 'odometer_recorded_on' => '2026-05-31'])
         ->create();
 
     Route::factory()->create([
@@ -112,7 +112,8 @@ it('downloads a trip log and updates the profile mileage to its ending reading',
         ->assertHeader('content-type', 'application/pdf');
 
     expect($response->getContent())->toStartWith('%PDF')
-        ->and($user->activeVehicle()->value('odometer_km'))->toBe(1512.8);
+        ->and($user->activeVehicle()->value('odometer_km'))->toBe(1500.5)
+        ->and($user->activeVehicle()->first()->currentOdometer())->toBe(1512.8);
 });
 
 it('keeps profile mileage unchanged for an empty trip log', function () {
@@ -129,7 +130,7 @@ it('keeps profile mileage unchanged for an empty trip log', function () {
     expect($user->activeVehicle()->value('odometer_km'))->toBe(1500.5);
 });
 
-it('reuses an existing report without increasing the odometer twice', function () {
+it('reuses an existing report for the same period', function () {
     $user = User::factory()
         ->withProfile(['last_name' => 'Tamm'])
         ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 2000])
@@ -152,7 +153,7 @@ it('reuses an existing report without increasing the odometer twice', function (
         ->post('/api/reports/routes/pdf?from=2026-06-01&to=2026-06-30')
         ->assertOk();
 
-    expect($user->activeVehicle()->value('odometer_km'))->toBe(2010.0);
+    expect($user->activeVehicle()->value('odometer_km'))->toBe(2000.0);
 
     $this->assertDatabaseCount('trip_reports', 1);
 });
@@ -160,7 +161,7 @@ it('reuses an existing report without increasing the odometer twice', function (
 it('redownloads an immutable report after profile and route data changes', function () {
     $user = User::factory()
         ->withProfile(['first_name' => 'Mari', 'last_name' => 'Tamm'])
-        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 3000])
+        ->withVehicle(['registration_number' => '123 ABC', 'odometer_km' => 3000, 'odometer_recorded_on' => '2026-05-31'])
         ->create();
 
     $route = Route::factory()->create([

@@ -79,6 +79,11 @@
                                     <td data-label="Generated">{{ $report->generated_at->format('d.m.Y H:i') }}</td>
                                     <td class="actions">
                                         <a class="ghost-action" href="{{ route('web.reports.pdf', $report) }}">Download</a>
+                                        <form method="POST" action="{{ route('web.reports.destroy', $report) }}" data-confirm="Delete this report? You can generate it again later.">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="danger-action">Delete</button>
+                                        </form>
                                     </td>
                                 </tr>
                             @endforeach
