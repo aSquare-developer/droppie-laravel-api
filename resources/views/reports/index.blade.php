@@ -13,7 +13,10 @@
                 <div class="section-title">
                     <div>
                         <h2>New PDF report</h2>
-                        <p>Completed trips of the active vehicle in the selected period.</p>
+                        <p>Completed trips of the active vehicle in the selected period. The report starts from the mileage in your profile.</p>
+                        @if ($latestReport)
+                            <p>Continues after the latest report ({{ $latestReport->period_from->format('d.m.Y') }} – {{ $latestReport->period_to->format('d.m.Y') }}).</p>
+                        @endif
                     </div>
                 </div>
 
@@ -79,11 +82,13 @@
                                     <td data-label="Generated">{{ $report->generated_at->format('d.m.Y H:i') }}</td>
                                     <td class="actions">
                                         <a class="ghost-action" href="{{ route('web.reports.pdf', $report) }}">Download</a>
-                                        <form method="POST" action="{{ route('web.reports.destroy', $report) }}" data-confirm="Delete this report? You can generate it again later.">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="danger-action">Delete</button>
-                                        </form>
+                                        @if (in_array($report->id, $deletableReportIds, true))
+                                            <form method="POST" action="{{ route('web.reports.destroy', $report) }}" data-confirm="Delete this report? Its start reading goes back to the profile mileage.">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="danger-action">Delete</button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

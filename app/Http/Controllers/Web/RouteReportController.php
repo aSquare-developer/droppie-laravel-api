@@ -13,16 +13,31 @@ use Illuminate\View\View;
 
 class RouteReportController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, RouteReportService $routeReportService): View
     {
+        $user = $request->user();
+        $vehicle = $user->activeVehicle()->first();
+        $latest = $vehicle ? $routeReportService->latestReport($vehicle->id) : null;
+
+        // A new report continues after the latest one, so suggest that period.
+        $from = $latest?->period_to->copy()->addDay() ?? now()->subDays(30);
+        $to = now()->max($from);
+
         return view('reports.index', [
-            'reports' => $request->user()
+            'reports' => $user
                 ->tripReports()
                 ->latest('generated_at')
                 ->latest('id')
                 ->paginate(10),
-            'reportFrom' => old('from', now()->subDays(30)->toDateString()),
-            'reportTo' => old('to', now()->toDateString()),
+            'deletableReportIds' => $user->vehicles()
+                ->pluck('id')
+                ->map(fn (int $vehicleId): ?int => $routeReportService->latestReport($vehicleId)?->id)
+                ->filter()
+                ->values()
+                ->all(),
+            'latestReport' => $latest,
+            'reportFrom' => old('from', $from->toDateString()),
+            'reportTo' => old('to', $to->toDateString()),
         ]);
     }
 
@@ -43,16 +58,15 @@ class RouteReportController extends Controller
     }
 
     /**
-     * Remove a stored report so the same period can be generated again with current data.
-     * The vehicle mileage does not depend on reports, so nothing else changes.
+     * Remove the latest report and give its start reading back to the profile mileage.
      */
-    public function destroy(TripReport $report): RedirectResponse
+    public function destroy(TripReport $report, RouteReportService $routeReportService): RedirectResponse
     {
-        $report->delete();
+        $routeReportService->deleteReport($report);
 
         return redirect()
             ->route('reports')
-            ->with('success', 'Report deleted. You can generate it again for the same period.');
+            ->with('success', 'Report deleted. Its start reading is back in the profile, so the period can be generated again.');
     }
 
     /**

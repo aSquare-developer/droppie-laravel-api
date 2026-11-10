@@ -37,27 +37,9 @@ class UserProfileService
                 }
             }
 
-            // The mileage is the reading at the end of the day it is entered. Re-saving the form
-            // with the same value must not move that date, or trips since then would be lost.
-            $currentVehicle = $user->activeVehicle()->first();
-
-            if (array_key_exists('odometer_km', $vehicleData)
-                && $this->mileageChanged($currentVehicle?->odometer_km, $vehicleData['odometer_km'])) {
-                $vehicleData['odometer_recorded_on'] = $vehicleData['odometer_km'] === null ? null : today();
-            }
-
             $user->activeVehicle()->updateOrCreate([], $vehicleData);
 
             return $user->fresh(['profile', 'activeVehicle']);
         });
-    }
-
-    private function mileageChanged(mixed $old, mixed $new): bool
-    {
-        if ($old === null || $new === null || $new === '') {
-            return ($old === null) !== ($new === null || $new === '');
-        }
-
-        return round((float) $old, 1) !== round((float) $new, 1);
     }
 }

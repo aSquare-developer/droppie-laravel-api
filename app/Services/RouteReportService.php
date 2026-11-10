@@ -33,6 +33,7 @@ class RouteReportService
             }
 
             $this->validateTripLog($user, $vehicle);
+            $this->ensureFollowsLatestReport($vehicle, $from);
 
             $routes = $user
                 ->routes()
@@ -45,17 +46,15 @@ class RouteReportService
                 ->orderBy('id')
                 ->get();
 
-            // Reading at the end of the day before the period, from the vehicle's baseline (#35).
-            $startingOdometer = $vehicle->odometerAt(Carbon::parse($from)->subDay());
-            $rows = $this->buildTripLogRows($routes, $startingOdometer);
-            $endingOdometer = $this->getEndingOdometer($rows, $startingOdometer);
+            $rows = $this->buildTripLogRows($routes, $vehicle->odometer_km);
+            $endingOdometer = $this->getEndingOdometer($rows, $vehicle->odometer_km);
 
             $report = TripReport::query()->create([
                 'user_id' => $user->id,
                 'vehicle_id' => $vehicle->id,
                 'period_from' => $from,
                 'period_to' => $to,
-                'odometer_start_km' => $startingOdometer,
+                'odometer_start_km' => $vehicle->odometer_km,
                 'odometer_end_km' => $endingOdometer,
                 'total_distance_km' => round((float) $routes->sum('distance_km'), 1),
                 'profile_snapshot' => [
@@ -73,8 +72,68 @@ class RouteReportService
                 'generated_at' => now(),
             ]);
 
+            if ($rows->isNotEmpty()) {
+                $vehicle->update(['odometer_km' => $endingOdometer]);
+            }
+
             return $report;
         });
+    }
+
+    /**
+     * Delete the latest report of its vehicle and give its start reading back to the profile,
+     * so the same period can be generated again. Older reports are kept: the profile mileage
+     * has already moved past them.
+     */
+    public function deleteReport(TripReport $report): void
+    {
+        DB::transaction(function () use ($report): void {
+            $vehicle = Vehicle::query()->lockForUpdate()->find($report->vehicle_id);
+            $latest = $this->latestReport($report->vehicle_id);
+
+            if ($latest?->id !== $report->id) {
+                throw ValidationException::withMessages([
+                    'report' => 'Only the latest report can be deleted.',
+                ]);
+            }
+
+            // Leave a mileage that was changed by hand after the report.
+            if ($vehicle !== null && (float) $vehicle->odometer_km === (float) $report->odometer_end_km) {
+                $vehicle->update(['odometer_km' => $report->odometer_start_km]);
+            }
+
+            $report->delete();
+        });
+    }
+
+    public function latestReport(int $vehicleId): ?TripReport
+    {
+        return TripReport::query()
+            ->where('vehicle_id', $vehicleId)
+            ->orderByDesc('period_to')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * The profile mileage is the start reading of the next report and each report moves it to
+     * its end reading, so a new report must start after the latest one. Overlapping or earlier
+     * periods would count the same trips twice.
+     */
+    private function ensureFollowsLatestReport(Vehicle $vehicle, string $from): void
+    {
+        $latest = $this->latestReport($vehicle->id);
+
+        if ($latest !== null && Carbon::parse($from)->lte($latest->period_to)) {
+            throw ValidationException::withMessages([
+                'from' => sprintf(
+                    'Reports continue from the latest one (%s – %s). Choose a period starting after %s.',
+                    $latest->period_from->format('d.m.Y'),
+                    $latest->period_to->format('d.m.Y'),
+                    $latest->period_to->format('d.m.Y'),
+                ),
+            ]);
+        }
     }
 
     public function buildTripLogRows(Collection $routes, float $initialOdometer): Collection

@@ -94,9 +94,9 @@ Autocomplete lists the user's matching history first (marked "Recent") and asks 
 
 ## Trip Reports and Mileage
 
-The vehicle mileage in the profile is a baseline: the odometer reading at the end of the day it was entered (`vehicles.odometer_recorded_on`). The reading on any day is the baseline plus the completed trips of that vehicle after it, or minus the trips between that day and the baseline. Trip reports compute their start reading from it, so reports for any period agree with each other, whatever order they are generated in. Generating a report does not change the stored mileage.
+The vehicle mileage in the profile is the start reading of the next trip report. Generating a report moves it to the report's end reading. To avoid counting trips twice, a new report must start after the latest report of the vehicle; overlapping or earlier periods are rejected. Requesting the same period again downloads the stored report.
 
-Reports are stored snapshots. Deleting one from the report history lets the same period be generated again with current data.
+Only the latest report can be deleted. Its start reading goes back to the profile mileage (unless the mileage was changed by hand since), so the period can be generated again.
 
 ## Queue
 
