@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TripReport;
 use App\Services\RouteReportService;
 use App\Services\TripReportPdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -39,6 +40,19 @@ class RouteReportController extends Controller
         );
 
         return $pdf->download($report);
+    }
+
+    /**
+     * Remove a stored report so the same period can be generated again with current data.
+     * The vehicle mileage does not depend on reports, so nothing else changes.
+     */
+    public function destroy(TripReport $report): RedirectResponse
+    {
+        $report->delete();
+
+        return redirect()
+            ->route('reports')
+            ->with('success', 'Report deleted. You can generate it again for the same period.');
     }
 
     /**

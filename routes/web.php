@@ -59,6 +59,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/reports/routes/pdf', [RouteReportController::class, 'download'])
         ->middleware('throttle:reports')
         ->name('web.reports.routes.pdf');
+    Route::delete('/reports/{report}', [RouteReportController::class, 'destroy'])
+        ->whereNumber('report')
+        ->name('web.reports.destroy');
     Route::get('/reports/{report}/pdf', [RouteReportController::class, 'show'])
         ->middleware('throttle:reports')
         ->whereNumber('report')

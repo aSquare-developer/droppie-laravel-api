@@ -6,6 +6,7 @@ use App\Enums\DistanceStatus;
 use App\Models\TripReport;
 use App\Models\User;
 use App\Models\Vehicle;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -44,15 +45,17 @@ class RouteReportService
                 ->orderBy('id')
                 ->get();
 
-            $rows = $this->buildTripLogRows($routes, $vehicle->odometer_km);
-            $endingOdometer = $this->getEndingOdometer($rows, $vehicle->odometer_km);
+            // Reading at the end of the day before the period, from the vehicle's baseline (#35).
+            $startingOdometer = $vehicle->odometerAt(Carbon::parse($from)->subDay());
+            $rows = $this->buildTripLogRows($routes, $startingOdometer);
+            $endingOdometer = $this->getEndingOdometer($rows, $startingOdometer);
 
             $report = TripReport::query()->create([
                 'user_id' => $user->id,
                 'vehicle_id' => $vehicle->id,
                 'period_from' => $from,
                 'period_to' => $to,
-                'odometer_start_km' => $vehicle->odometer_km,
+                'odometer_start_km' => $startingOdometer,
                 'odometer_end_km' => $endingOdometer,
                 'total_distance_km' => round((float) $routes->sum('distance_km'), 1),
                 'profile_snapshot' => [
@@ -69,10 +72,6 @@ class RouteReportService
                 'rows' => $rows->values()->all(),
                 'generated_at' => now(),
             ]);
-
-            if ($rows->isNotEmpty()) {
-                $vehicle->update(['odometer_km' => $endingOdometer]);
-            }
 
             return $report;
         });

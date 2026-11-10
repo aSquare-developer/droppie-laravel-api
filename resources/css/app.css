@@ -537,6 +537,7 @@ label span {
 .profile-form-grid {
     display: grid;
     gap: 12px;
+    align-items: start;
 }
 
 .page-narrow .profile-form-grid {
@@ -809,6 +810,18 @@ label span {
 
 .report-table .actions {
     text-align: right;
+}
+
+.report-table .actions form {
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.field-hint {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1.35;
 }
 
 .workspace {

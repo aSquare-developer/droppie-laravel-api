@@ -42,6 +42,12 @@
                     <label>
                         <span>Vehicle mileage</span>
                         <input name="car_mileage" type="number" min="0" step="0.1" inputmode="decimal" value="{{ old('car_mileage', $vehicle?->odometer_km) }}">
+                        @if ($vehicle?->odometer_km !== null)
+                            <small class="field-hint">
+                                Reading on {{ ($vehicle->odometer_recorded_on ?? today())->format('d.m.Y') }}.
+                                With trips since then: {{ number_format($vehicle->currentOdometer(), 1, '.', ' ') }} km.
+                            </small>
+                        @endif
                     </label>
                     <label>
                         <span>Country of residence</span>
