@@ -28,8 +28,6 @@ class UserResource extends JsonResource
             'car_registration_number' => $vehicle?->registration_number,
             'car_make_model' => $vehicle?->make_model,
             'car_mileage' => $vehicle?->odometer_km,
-            'car_mileage_recorded_on' => $vehicle?->odometer_recorded_on?->toDateString(),
-            'car_current_mileage' => $vehicle?->currentOdometer(),
             'active_vehicle_id' => $vehicle?->id,
             'created_at' => $this->created_at,
         ];
