@@ -107,3 +107,16 @@ it('shows the empty state for a user without routes', function () {
         ->assertOk()
         ->assertSee('No routes yet');
 });
+
+it('marks the saved addresses of an edited route as valid instead of showing postal hints', function () {
+    $route = Route::query()->whereDate('started_at', '2026-02-06')->firstOrFail();
+    $route->startAddress->update(['postal_code' => '51004', 'city' => 'Tartu']);
+
+    $this->actingAs($this->user)
+        ->get(route('dashboard', ['edit' => $route->id]))
+        ->assertOk()
+        ->assertSee('data-address-input="start"', false)
+        ->assertSee('data-address-state="valid"', false)
+        ->assertSee('<small class="address-hint" data-address-hint="start"></small>', false)
+        ->assertDontSee('51004, Tartu');
+});

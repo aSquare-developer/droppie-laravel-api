@@ -288,7 +288,8 @@ async function selectAddressSuggestion(field, suggestion) {
 
         input.value = payload.data.formatted_address;
         placeId.value = payload.data.place_id;
-        setAddressHint(field, [payload.data.postal_code, payload.data.city].filter(Boolean).join(', '), 'success');
+        // A green field says the address is valid; no extra text is needed.
+        setAddressHint(field, '', 'success');
         lookup.sessionToken = null;
     } catch (error) {
         placeId.value = '';
@@ -309,13 +310,19 @@ function hideAddressSuggestions(field) {
 
 function setAddressHint(field, text, type = '') {
     const hint = document.querySelector(`[data-address-hint="${field}"]`);
+    const input = document.querySelector(`[data-address-input="${field}"]`);
 
-    if (!hint) {
-        return;
+    if (hint) {
+        hint.textContent = text || '';
+        hint.dataset.state = type;
     }
 
-    hint.textContent = text || '';
-    hint.dataset.state = type;
+    if (input) {
+        const state = { success: 'valid', error: 'invalid' }[type] || '';
+
+        input.dataset.addressState = state;
+        input.toggleAttribute('aria-invalid', state === 'invalid');
+    }
 }
 
 function setupRouteFormGuard() {

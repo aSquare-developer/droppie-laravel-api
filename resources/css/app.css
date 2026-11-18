@@ -38,6 +38,8 @@
     --danger-hover: #f7d2d2;
     --danger-line: #efbebe;
     --danger-surface: #fff0f0;
+    --success: #2e8b57;
+    --success-ring: rgba(46, 139, 87, 0.18);
     --success-line: #b9ddcc;
     --success-soft: #edf8f1;
     --warning-line: #f3dc8f;
@@ -81,7 +83,9 @@
         --danger-hover: #4b2729;
         --danger-line: #5c2d2e;
         --danger-surface: #2a1819;
-        --success-line: #2f5b4b;
+        --success: #5cc28a;
+    --success-ring: rgba(92, 194, 138, 0.25);
+    --success-line: #2f5b4b;
         --success-soft: #152620;
         --warning-line: #5c4c1d;
         --warning-soft: #2a2414;
@@ -123,6 +127,8 @@
     --danger-hover: #4b2729;
     --danger-line: #5c2d2e;
     --danger-surface: #2a1819;
+    --success: #5cc28a;
+    --success-ring: rgba(92, 194, 138, 0.25);
     --success-line: #2f5b4b;
     --success-soft: #152620;
     --warning-line: #5c4c1d;
@@ -364,12 +370,36 @@ label span {
     line-height: 1.35;
 }
 
-.address-hint:empty {
-    display: none;
+/* A validated address is shown by a green field with a check mark instead of hint text. */
+input[data-address-state="valid"] {
+    padding-right: 38px;
+    border-color: var(--success);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%232e8b57' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px 16px;
 }
 
-.address-hint[data-state='success'] {
-    color: var(--brand);
+input[data-address-state="valid"]:focus {
+    box-shadow: 0 0 0 3px var(--success-ring);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) input[data-address-state="valid"] {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%235cc28a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+    }
+}
+
+:root[data-theme="dark"] input[data-address-state="valid"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%235cc28a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+}
+
+input[data-address-state="invalid"] {
+    border-color: var(--danger);
+}
+
+.address-hint:empty {
+    display: none;
 }
 
 .address-hint[data-state='error'] {
