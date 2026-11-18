@@ -49,8 +49,8 @@ class DashboardController extends Controller
         $dayRoutes = $selectedDate === null ? collect() : (clone $routes)
             ->with(['startAddress', 'endAddress'])
             ->whereDate('started_at', $selectedDate)
-            ->orderBy('created_at')
-            ->orderBy('id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
 
         // New trips usually continue the last one entered, so start from its date.

@@ -27,7 +27,7 @@ beforeEach(function () {
     dayTrip($this->user, '2026-02-07', 'Vanemuise tn 1, Tartu', 12);
 });
 
-it('opens on the newest trip date and lists only its routes in the order they were added', function () {
+it('opens on the newest trip date and lists its routes newest first', function () {
     $this->actingAs($this->user)
         ->get(route('dashboard'))
         ->assertOk()
@@ -35,7 +35,7 @@ it('opens on the newest trip date and lists only its routes in the order they we
         ->assertSee('2 routes')
         ->assertSee('3.8 km')
         ->assertSee('day 1 of 3')
-        ->assertSeeInOrder(['Aleksandri tn 5, Tartu', 'Raatuse tn 18, Tartu'])
+        ->assertSeeInOrder(['Raatuse tn 18, Tartu', 'Aleksandri tn 5, Tartu'])
         ->assertDontSee('Riia tn 1, Tartu')
         ->assertDontSee('Vanemuise tn 1, Tartu');
 });
