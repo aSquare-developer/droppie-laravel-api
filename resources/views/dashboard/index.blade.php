@@ -11,7 +11,6 @@
 @section('content')
     @php
         $distanceLabel = fn ($value) => blank($value) ? 'Not available' : number_format((float) $value, 1, '.', ',').' km';
-        $dateLabel = fn ($value) => $value ? $value->format('d M Y') : 'No date';
         $editingStart = $editingRoute?->startAddress;
         $editingEnd = $editingRoute?->endAddress;
     @endphp
@@ -75,9 +74,7 @@
                             <input name="start_address_session_token" data-address-session-token="start" type="hidden" value="{{ old('start_address_session_token') }}">
                             <div class="address-suggestions" data-address-suggestions="start" hidden></div>
                         </div>
-                        <small class="address-hint" data-address-hint="start">
-                            {{ old('start_place_id', $editingStart?->place_id) ? collect([$editingStart?->postal_code, $editingStart?->city])->filter()->implode(', ') : '' }}
-                        </small>
+                        <small class="address-hint" data-address-hint="start">{{ old('start_place_id', $editingStart?->place_id) ? collect([$editingStart?->postal_code, $editingStart?->city])->filter()->implode(', ') : '' }}</small>
                     </label>
 
                     <label class="address-field">
@@ -97,9 +94,7 @@
                             <input name="end_address_session_token" data-address-session-token="end" type="hidden" value="{{ old('end_address_session_token') }}">
                             <div class="address-suggestions" data-address-suggestions="end" hidden></div>
                         </div>
-                        <small class="address-hint" data-address-hint="end">
-                            {{ old('end_place_id', $editingEnd?->place_id) ? collect([$editingEnd?->postal_code, $editingEnd?->city])->filter()->implode(', ') : '' }}
-                        </small>
+                        <small class="address-hint" data-address-hint="end">{{ old('end_place_id', $editingEnd?->place_id) ? collect([$editingEnd?->postal_code, $editingEnd?->city])->filter()->implode(', ') : '' }}</small>
                     </label>
 
                     <label>
@@ -131,14 +126,16 @@
                 </div>
             </div>
 
-            <form method="GET" action="{{ route('dashboard') }}" class="filters-bar">
+            <form method="GET" action="{{ route('dashboard') }}" class="filters-bar" role="search">
                 <label class="search-field">
-                    <span>Search</span>
-                    <input name="search" type="search" value="{{ $filters['search'] }}" placeholder="Address">
+                    <span class="sr-only">Search by address</span>
+                    <input name="search" type="search" value="{{ $filters['search'] }}" placeholder="Search by address">
                 </label>
                 <div class="filter-actions">
-                    <button type="submit" class="secondary-action">Apply</button>
-                    <a class="ghost-action" href="{{ route('dashboard') }}">Reset</a>
+                    <button type="submit" class="secondary-action">Search</button>
+                    @if ($filters['search'] !== '')
+                        <a class="ghost-action" href="{{ route('dashboard') }}">Reset</a>
+                    @endif
                 </div>
             </form>
 
@@ -152,7 +149,6 @@
                         'route' => $route,
                         'statusLabels' => $statusLabels,
                         'distanceLabel' => $distanceLabel,
-                        'dateLabel' => $dateLabel,
                     ])
                 @empty
                     <div class="empty-state">

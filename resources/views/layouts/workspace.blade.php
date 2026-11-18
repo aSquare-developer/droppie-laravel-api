@@ -13,10 +13,7 @@
         <header class="topbar">
             <div class="brand-row compact">
                 <span class="brand-mark">D</span>
-                <div>
-                    <span class="brand-name">Droppie</span>
-                    <span class="brand-subtitle">Web dashboard</span>
-                </div>
+                <span class="brand-name">Droppie</span>
             </div>
 
             <nav class="main-nav" aria-label="Main">

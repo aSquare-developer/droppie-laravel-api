@@ -4,9 +4,9 @@
 
 <nav class="day-nav" aria-label="Trip dates">
     @if ($day['newer'])
-        <a class="ghost-action" href="{{ $dayUrl($day['newer']) }}" rel="prev">&larr; Newer</a>
+        <a class="ghost-action" href="{{ $dayUrl($day['newer']) }}" rel="prev" aria-label="Newer date">&larr; <span class="nav-label">Newer</span></a>
     @else
-        <button type="button" class="ghost-action" disabled>&larr; Newer</button>
+        <button type="button" class="ghost-action" disabled aria-label="Newer date">&larr; <span class="nav-label">Newer</span></button>
     @endif
 
     @if ($withPicker ?? false)
@@ -24,8 +24,8 @@
     @endif
 
     @if ($day['older'])
-        <a class="ghost-action" href="{{ $dayUrl($day['older']) }}" rel="next">Older &rarr;</a>
+        <a class="ghost-action" href="{{ $dayUrl($day['older']) }}" rel="next" aria-label="Older date"><span class="nav-label">Older</span> &rarr;</a>
     @else
-        <button type="button" class="ghost-action" disabled>Older &rarr;</button>
+        <button type="button" class="ghost-action" disabled aria-label="Older date"><span class="nav-label">Older</span> &rarr;</button>
     @endif
 </nav>
