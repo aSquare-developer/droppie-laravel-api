@@ -71,6 +71,61 @@ function setupConfirmForms() {
     });
 }
 
+const THEME_KEY = 'droppie-theme';
+const THEMES = ['auto', 'light', 'dark'];
+const THEME_LABELS = { auto: 'Auto', light: 'Light', dark: 'Dark' };
+
+function storedTheme() {
+    try {
+        const theme = localStorage.getItem(THEME_KEY);
+
+        return THEMES.includes(theme) ? theme : 'auto';
+    } catch (error) {
+        return 'auto';
+    }
+}
+
+function applyTheme(theme) {
+    if (theme === 'auto') {
+        delete document.documentElement.dataset.theme;
+    } else {
+        document.documentElement.dataset.theme = theme;
+    }
+
+    try {
+        if (theme === 'auto') {
+            localStorage.removeItem(THEME_KEY);
+        } else {
+            localStorage.setItem(THEME_KEY, theme);
+        }
+    } catch (error) {
+        // Private mode or blocked storage: the choice lasts until the page is left.
+    }
+
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+        const description = theme === 'auto' ? 'follow system' : THEME_LABELS[theme].toLowerCase();
+
+        button.setAttribute('aria-label', `Theme: ${description}`);
+        button.title = `Theme: ${description}`;
+        button.querySelector('[data-theme-label]').textContent = THEME_LABELS[theme];
+        button.querySelectorAll('[data-theme-icon]').forEach((icon) => {
+            icon.hidden = icon.dataset.themeIcon !== theme;
+        });
+    });
+}
+
+function setupThemeToggle() {
+    let theme = storedTheme();
+    applyTheme(theme);
+
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+            theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+            applyTheme(theme);
+        });
+    });
+}
+
 function setupAutoSubmit() {
     document.querySelectorAll('[data-auto-submit]').forEach((input) => {
         input.addEventListener('change', () => {
@@ -369,6 +424,7 @@ function escapeHtml(value) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    setupThemeToggle();
     setupFlashDismissal();
     setupConfirmForms();
     setupAutoSubmit();
