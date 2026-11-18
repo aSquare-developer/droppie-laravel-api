@@ -90,6 +90,8 @@ Addresses are stored in the reusable `addresses` table. The `routes` table store
 
 The address catalog is shared only for `place_id` deduplication. Autocomplete history is stored in `address_usages` and scoped to the authenticated user, so one user cannot receive addresses previously entered by another user.
 
+The profile has a country (ISO code, chosen from a list) and a home city. When the city is saved, its coordinates are looked up once with Places "Find Place" (same Places API key). Suggestions from Google then prefer that country (`region`) and places within 50 km of the city (`location`/`radius`); `GOOGLE_PLACES_COUNTRY` still restricts them. If the city cannot be found, the profile is saved without the city bias.
+
 Autocomplete lists the user's matching history first (marked "Recent") and asks Google Places only when the history has fewer than five matches; Google results already in the history are skipped. If Google is unavailable, the history matches are still returned.
 
 ## Trip Reports and Mileage
