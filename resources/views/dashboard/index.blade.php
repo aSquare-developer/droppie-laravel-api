@@ -10,7 +10,6 @@
 
 @section('content')
     @php
-        $activeRoutes = $routes->getCollection()->filter->isDistanceCalculationInProgress()->count();
         $distanceLabel = fn ($value) => blank($value) ? 'Not available' : number_format((float) $value, 1, '.', ',').' km';
         $dateLabel = fn ($value) => $value ? $value->format('d M Y') : 'No date';
         $editingStart = $editingRoute?->startAddress;
@@ -27,7 +26,7 @@
     <dl class="metric-bar" aria-label="Route overview">
         <div class="metric-item">
             <dt>Routes</dt>
-            <dd>{{ $routes->total() }}</dd>
+            <dd>{{ $summary['routes'] }}</dd>
         </div>
         <div class="metric-item">
             <dt>Kilometers</dt>
@@ -35,7 +34,7 @@
         </div>
         <div class="metric-item">
             <dt>In progress</dt>
-            <dd>{{ $activeRoutes }}</dd>
+            <dd>{{ $summary['in_progress'] }}</dd>
         </div>
     </dl>
 
@@ -116,8 +115,19 @@
         <section class="routes-panel">
             <div class="section-title list-title">
                 <div>
-                    <h2>Routes</h2>
-                    <p>{{ $routes->total() }} records</p>
+                    @if ($day['date'])
+                        <h2>{{ $day['date']->format('l, d M Y') }}</h2>
+                        <p>
+                            {{ $dayRoutes->count() }} {{ \Illuminate\Support\Str::plural('route', $dayRoutes->count()) }}
+                            &middot; {{ number_format($day['distance_km'], 1, '.', ',') }} km
+                            @if ($day['position'])
+                                &middot; day {{ $day['position'] }} of {{ $day['count'] }}
+                            @endif
+                        </p>
+                    @else
+                        <h2>Routes</h2>
+                        <p>{{ $summary['routes'] }} records</p>
+                    @endif
                 </div>
             </div>
 
@@ -126,25 +136,18 @@
                     <span>Search</span>
                     <input name="search" type="search" value="{{ $filters['search'] }}" placeholder="Address">
                 </label>
-                <label>
-                    <span>Sort by</span>
-                    <select name="sort">
-                        <option value="-started_at" @selected($filters['sort'] === '-started_at')>Latest trips</option>
-                        <option value="started_at" @selected($filters['sort'] === 'started_at')>Earliest trips</option>
-                        <option value="-distance_km" @selected($filters['sort'] === '-distance_km')>Longest first</option>
-                        <option value="distance_km" @selected($filters['sort'] === 'distance_km')>Shortest first</option>
-                        <option value="-created_at" @selected($filters['sort'] === '-created_at')>Recently created</option>
-                        <option value="created_at" @selected($filters['sort'] === 'created_at')>Oldest created</option>
-                    </select>
-                </label>
                 <div class="filter-actions">
                     <button type="submit" class="secondary-action">Apply</button>
                     <a class="ghost-action" href="{{ route('dashboard') }}">Reset</a>
                 </div>
             </form>
 
+            @if ($day['count'] > 0)
+                @include('dashboard.day-nav', ['withPicker' => true])
+            @endif
+
             <div class="routes-list" aria-live="polite">
-                @forelse ($routes as $route)
+                @forelse ($dayRoutes as $route)
                     @include('dashboard.route-card', [
                         'route' => $route,
                         'statusLabels' => $statusLabels,
@@ -153,28 +156,22 @@
                     ])
                 @empty
                     <div class="empty-state">
-                        <h3>No routes yet</h3>
-                        <p>Add your first route using the form on the left.</p>
+                        @if ($day['count'] === 0 && $filters['search'] !== '')
+                            <h3>No routes found</h3>
+                            <p>No route matches “{{ $filters['search'] }}”.</p>
+                        @elseif ($day['count'] === 0)
+                            <h3>No routes yet</h3>
+                            <p>Add your first route using the form.</p>
+                        @else
+                            <h3>No trips on this date</h3>
+                            <p>Use Newer / Older to go to a date with trips.</p>
+                        @endif
                     </div>
                 @endforelse
             </div>
 
-            @if ($routes->hasPages())
-                <nav class="pagination" aria-label="Pagination">
-                    @if ($routes->onFirstPage())
-                        <button type="button" class="ghost-action" disabled>Previous</button>
-                    @else
-                        <a class="ghost-action" href="{{ $routes->previousPageUrl() }}">Previous</a>
-                    @endif
-
-                    <span>{{ $routes->currentPage() }} / {{ $routes->lastPage() }}</span>
-
-                    @if ($routes->hasMorePages())
-                        <a class="ghost-action" href="{{ $routes->nextPageUrl() }}">Next</a>
-                    @else
-                        <button type="button" class="ghost-action" disabled>Next</button>
-                    @endif
-                </nav>
+            @if ($dayRoutes->count() > 3)
+                @include('dashboard.day-nav', ['withPicker' => false])
             @endif
         </section>
     </section>

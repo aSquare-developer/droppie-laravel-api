@@ -133,7 +133,7 @@ it('creates a route from the blade form using selected google place ids', functi
             'end_place_id' => 'end-place',
             'started_at' => '2026-06-01',
         ])
-        ->assertRedirect(route('dashboard'));
+        ->assertRedirect(route('dashboard', ['date' => '2026-06-01']));
 
     $this->assertDatabaseHas('addresses', [
         'place_id' => 'start-place',

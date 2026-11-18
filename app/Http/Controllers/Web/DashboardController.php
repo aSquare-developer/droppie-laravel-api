@@ -6,6 +6,8 @@ use App\Enums\DistanceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Route as TripRoute;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -13,15 +15,12 @@ class DashboardController extends Controller
     public function __invoke(Request $request): View
     {
         $user = $request->user()->loadMissing('activeVehicle');
-        $search = trim((string) $request->query('search', ''));
-        $sort = (string) $request->query('sort', '-created_at');
+        $search = mb_substr(trim((string) $request->query('search', '')), 0, 255);
 
-        $query = $user
-            ->routes()
-            ->with(['startAddress', 'endAddress']);
+        $routes = $user->routes();
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
+            $routes->where(function ($q) use ($search): void {
                 $q
                     ->whereHas('startAddress', function ($addressQuery) use ($search): void {
                         $addressQuery->matchingText($search);
@@ -32,32 +31,27 @@ class DashboardController extends Controller
             });
         }
 
-        $totalDistanceKm = (float) (clone $query)->sum('distance_km');
+        $editingRoute = $request->filled('edit')
+            ? $user->routes()->with(['startAddress', 'endAddress'])->findOrFail((int) $request->query('edit'))
+            : null;
 
-        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
-        $column = ltrim($sort, '-');
-        $allowedSorts = ['created_at', 'distance_km', 'started_at'];
+        // The history shows one trip date per page, newest first.
+        $dates = (clone $routes)
+            ->select('started_at')
+            ->distinct()
+            ->orderByDesc('started_at')
+            ->pluck('started_at')
+            ->map(fn ($date): string => Carbon::parse($date)->toDateString())
+            ->values();
 
-        if (! in_array($column, $allowedSorts, true)) {
-            $sort = '-created_at';
-            $column = 'created_at';
-            $direction = 'desc';
-        }
+        $selectedDate = $this->selectedDate($request, $editingRoute) ?? $dates->first();
 
-        $routes = $query
-            ->orderBy($column, $direction)
-            ->paginate(10)
-            ->withQueryString();
-
-        $editingRoute = null;
-
-        if ($request->filled('edit')) {
-            $editingRoute = TripRoute::query()
-                ->with(['startAddress', 'endAddress'])
-                ->findOrFail((int) $request->query('edit'));
-
-            $this->authorize('update', $editingRoute);
-        }
+        $dayRoutes = $selectedDate === null ? collect() : (clone $routes)
+            ->with(['startAddress', 'endAddress'])
+            ->whereDate('started_at', $selectedDate)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
 
         // New trips usually continue the last one entered, so start from its date.
         $defaultTripDate = $user->routes()
@@ -69,17 +63,50 @@ class DashboardController extends Controller
 
         return view('dashboard.index', [
             'user' => $user,
-            'routes' => $routes,
+            'dayRoutes' => $dayRoutes,
+            'day' => [
+                'date' => $selectedDate === null ? null : Carbon::parse($selectedDate),
+                'distance_km' => round((float) $dayRoutes->sum('distance_km'), 1),
+                'position' => $selectedDate === null ? null : $this->position($dates, $selectedDate),
+                'count' => $dates->count(),
+                'newer' => $selectedDate === null ? null : $dates->filter(fn (string $date): bool => $date > $selectedDate)->last(),
+                'older' => $selectedDate === null ? null : $dates->first(fn (string $date): bool => $date < $selectedDate),
+            ],
             'summary' => [
-                'total_distance_km' => round($totalDistanceKm, 1),
+                'routes' => (clone $routes)->count(),
+                'total_distance_km' => round((float) (clone $routes)->sum('distance_km'), 1),
+                'in_progress' => (clone $routes)
+                    ->whereIn('distance_status', [DistanceStatus::Pending, DistanceStatus::Processing])
+                    ->count(),
             ],
             'filters' => [
                 'search' => $search,
-                'sort' => $sort,
             ],
             'editingRoute' => $editingRoute,
             'defaultTripDate' => $defaultTripDate,
             'statusLabels' => DistanceStatus::labels(),
         ]);
+    }
+
+    private function selectedDate(Request $request, ?TripRoute $editingRoute): ?string
+    {
+        $date = (string) $request->query('date', '');
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $parts) === 1
+            && checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+            return $date;
+        }
+
+        return $editingRoute?->started_at?->toDateString();
+    }
+
+    /**
+     * @param  Collection<int, string>  $dates
+     */
+    private function position(Collection $dates, string $selectedDate): ?int
+    {
+        $index = $dates->search($selectedDate, true);
+
+        return $index === false ? null : $index + 1;
     }
 }
