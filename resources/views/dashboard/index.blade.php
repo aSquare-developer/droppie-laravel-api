@@ -69,12 +69,13 @@
                                 autocomplete="off"
                                 placeholder="Street, building number, city"
                                 value="{{ old('start_address_display', $editingStart?->formatted_address) }}"
+                                @if (old('start_place_id', $editingStart?->place_id)) data-address-state="valid" @endif
                             >
                             <input name="start_place_id" data-address-place-id="start" type="hidden" value="{{ old('start_place_id', $editingStart?->place_id) }}">
                             <input name="start_address_session_token" data-address-session-token="start" type="hidden" value="{{ old('start_address_session_token') }}">
                             <div class="address-suggestions" data-address-suggestions="start" hidden></div>
                         </div>
-                        <small class="address-hint" data-address-hint="start">{{ old('start_place_id', $editingStart?->place_id) ? collect([$editingStart?->postal_code, $editingStart?->city])->filter()->implode(', ') : '' }}</small>
+                        <small class="address-hint" data-address-hint="start"></small>
                     </label>
 
                     <label class="address-field">
@@ -89,12 +90,13 @@
                                 autocomplete="off"
                                 placeholder="Street, building number, city"
                                 value="{{ old('end_address_display', $editingEnd?->formatted_address) }}"
+                                @if (old('end_place_id', $editingEnd?->place_id)) data-address-state="valid" @endif
                             >
                             <input name="end_place_id" data-address-place-id="end" type="hidden" value="{{ old('end_place_id', $editingEnd?->place_id) }}">
                             <input name="end_address_session_token" data-address-session-token="end" type="hidden" value="{{ old('end_address_session_token') }}">
                             <div class="address-suggestions" data-address-suggestions="end" hidden></div>
                         </div>
-                        <small class="address-hint" data-address-hint="end">{{ old('end_place_id', $editingEnd?->place_id) ? collect([$editingEnd?->postal_code, $editingEnd?->city])->filter()->implode(', ') : '' }}</small>
+                        <small class="address-hint" data-address-hint="end"></small>
                     </label>
 
                     <label>
