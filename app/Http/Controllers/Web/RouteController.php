@@ -16,7 +16,7 @@ class RouteController extends Controller
     public function store(StoreRouteRequest $request, RouteService $routes): RedirectResponse
     {
         try {
-            $routes->createRoute($request->user(), $request->validated());
+            $route = $routes->createRoute($request->user(), $request->validated());
         } catch (HttpException $exception) {
             return back()
                 ->withErrors(['route' => $exception->getMessage()])
@@ -24,7 +24,7 @@ class RouteController extends Controller
         }
 
         return redirect()
-            ->route('dashboard')
+            ->route('dashboard', ['date' => $route->started_at->toDateString()])
             ->with('success', 'Route added and queued for distance calculation.');
     }
 
@@ -33,7 +33,7 @@ class RouteController extends Controller
         $this->authorize('update', $route);
 
         try {
-            $routes->updateRoute($route, $this->withoutUnchangedAddresses($route, $request->validated()));
+            $route = $routes->updateRoute($route, $this->withoutUnchangedAddresses($route, $request->validated()));
         } catch (HttpException $exception) {
             return back()
                 ->withErrors(['route' => $exception->getMessage()])
@@ -41,7 +41,7 @@ class RouteController extends Controller
         }
 
         return redirect()
-            ->route('dashboard')
+            ->route('dashboard', ['date' => $route->started_at->toDateString()])
             ->with('success', 'Route updated.');
     }
 

@@ -71,6 +71,16 @@ function setupConfirmForms() {
     });
 }
 
+function setupAutoSubmit() {
+    document.querySelectorAll('[data-auto-submit]').forEach((input) => {
+        input.addEventListener('change', () => {
+            if (input.value) {
+                input.form?.requestSubmit();
+            }
+        });
+    });
+}
+
 function setupReportQuickActions() {
     const form = document.querySelector('[data-report-form]');
 
@@ -361,6 +371,7 @@ function escapeHtml(value) {
 document.addEventListener('DOMContentLoaded', () => {
     setupFlashDismissal();
     setupConfirmForms();
+    setupAutoSubmit();
     setupReportQuickActions();
     setupAddressAutocomplete();
     setupRouteFormGuard();
