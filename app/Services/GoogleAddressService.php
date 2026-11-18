@@ -4,15 +4,22 @@ namespace App\Services;
 
 use App\Exceptions\AddressLookupException;
 use App\Exceptions\InvalidAddressException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class GoogleAddressService
 {
     /**
+     * Radius around the profile city that suggestions are biased towards.
+     */
+    private const CITY_BIAS_RADIUS_METERS = 50000;
+
+    /**
+     * @param  array{region?: string, location?: array{0: float, 1: float}}  $bias
      * @return array<int, array<string, string|null>>
      */
-    public function autocomplete(string $input, ?string $sessionToken = null): array
+    public function autocomplete(string $input, ?string $sessionToken = null, array $bias = []): array
     {
         $input = trim($input);
 
@@ -33,6 +40,16 @@ class GoogleAddressService
 
         if ($components = $this->countryComponents()) {
             $params['components'] = $components;
+        }
+
+        // region and location only rank results; components above still restricts them.
+        if (filled($bias['region'] ?? null)) {
+            $params['region'] = $bias['region'];
+        }
+
+        if (isset($bias['location'])) {
+            $params['location'] = implode(',', $bias['location']);
+            $params['radius'] = self::CITY_BIAS_RADIUS_METERS;
         }
 
         $payload = $this->googleGet(
@@ -57,6 +74,46 @@ class GoogleAddressService
             ->filter(fn (array $prediction): bool => filled($prediction['place_id']) && filled($prediction['description']))
             ->values()
             ->all();
+    }
+
+    /**
+     * Coordinates of a city, used to bias address suggestions towards it. Returns null when
+     * Google cannot find it or is unavailable; the caller then simply skips the bias.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    public function locateCity(string $city, ?string $countryCode = null): ?array
+    {
+        $city = trim($city);
+
+        if ($city === '' || blank(config('services.google.places_api_key'))) {
+            return null;
+        }
+
+        $country = $countryCode ? config('countries.'.strtoupper($countryCode)) : null;
+
+        try {
+            $payload = $this->googleGet(
+                'https://maps.googleapis.com/maps/api/place/findplacefromtext/json',
+                [
+                    'input' => collect([$city, $country])->filter()->implode(', '),
+                    'inputtype' => 'textquery',
+                    'fields' => 'geometry',
+                    'language' => config('services.google.maps_language', 'en'),
+                    'key' => $this->placesApiKey(),
+                ],
+                'Google Find Place'
+            );
+        } catch (AddressLookupException|ConnectionException) {
+            return null;
+        }
+
+        $lat = data_get($payload, 'candidates.0.geometry.location.lat');
+        $lng = data_get($payload, 'candidates.0.geometry.location.lng');
+
+        return ($payload['status'] ?? null) === 'OK' && is_numeric($lat) && is_numeric($lng)
+            ? [(float) $lat, (float) $lng]
+            : null;
     }
 
     /**

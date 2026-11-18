@@ -25,6 +25,8 @@ class UserResource extends JsonResource
             'email_verified_at' => $this->email_verified_at,
             'company_name' => $profile?->company_name,
             'country' => $profile?->country,
+            'country_code' => $profile?->country_code,
+            'city' => $profile?->city,
             'car_registration_number' => $vehicle?->registration_number,
             'car_make_model' => $vehicle?->make_model,
             'car_mileage' => $vehicle?->odometer_km,

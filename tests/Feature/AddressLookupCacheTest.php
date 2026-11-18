@@ -49,7 +49,7 @@ it('lists history matches first and adds new google suggestions', function () {
     $this->mock(GoogleAddressService::class, function ($mock): void {
         $mock->shouldReceive('autocomplete')
             ->once()
-            ->with('Mannerheimintie', 'session-1')
+            ->with('Mannerheimintie', 'session-1', [])
             ->andReturn([
                 googleSuggestion('known-place', 'Mannerheimintie 1, Helsinki, Finland'),
                 googleSuggestion('new-place', 'Mannerheimintie 5, Helsinki, Finland'),
@@ -159,7 +159,7 @@ it('does not expose another users address history in autocomplete', function () 
         $mock
             ->shouldReceive('autocomplete')
             ->twice()
-            ->with('Mannerheimintie', null)
+            ->with('Mannerheimintie', null, [])
             ->andReturn([]);
     });
 

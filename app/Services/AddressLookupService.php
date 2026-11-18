@@ -44,7 +44,7 @@ class AddressLookupService
         }
 
         try {
-            $google = $this->google->autocomplete($input, $sessionToken);
+            $google = $this->google->autocomplete($input, $sessionToken, $user->profile?->addressSearchBias() ?? []);
         } catch (AddressLookupException $exception) {
             if ($local->isEmpty()) {
                 throw $exception;

@@ -32,6 +32,20 @@
                         <input name="company_name" type="text" autocomplete="organization" maxlength="255" value="{{ old('company_name', $profile?->company_name) }}">
                     </label>
                     <label>
+                        <span>Country</span>
+                        <select name="country_code" autocomplete="country">
+                            <option value="">Not set</option>
+                            @foreach (config('countries') as $code => $name)
+                                <option value="{{ $code }}" @selected(old('country_code', $profile?->country_code) === $code)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label>
+                        <span>City</span>
+                        <input name="city" type="text" autocomplete="address-level2" maxlength="100" value="{{ old('city', $profile?->city) }}">
+                        <small class="field-hint">Address suggestions prefer this country and places near this city.</small>
+                    </label>
+                    <label>
                         <span>Vehicle registration number</span>
                         <input name="car_registration_number" type="text" maxlength="50" value="{{ old('car_registration_number', $vehicle?->registration_number) }}">
                     </label>
@@ -43,10 +57,6 @@
                         <span>Vehicle mileage</span>
                         <input name="car_mileage" type="number" min="0" step="0.1" inputmode="decimal" value="{{ old('car_mileage', $vehicle?->odometer_km) }}">
                         <small class="field-hint">Start reading of the next PDF report. Each report moves it to its end reading.</small>
-                    </label>
-                    <label>
-                        <span>Country of residence</span>
-                        <input name="country" type="text" autocomplete="country-name" maxlength="100" value="{{ old('country', $profile?->country) }}">
                     </label>
                 </div>
                 <button class="secondary-action" type="submit">Save profile</button>
