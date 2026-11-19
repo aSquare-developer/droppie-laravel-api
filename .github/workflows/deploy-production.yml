@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PHP_VERSION: "8.3"
+  # Same PHP version as the production server, which runs the release.
+  PHP_VERSION: "8.5"
   NODE_VERSION: "22"
 
 jobs:
