@@ -22,7 +22,7 @@ it('shows blade auth screens and registers a web session user', function () {
         ->post(route('register.store'), [
             'name' => 'Mari',
             'email' => 'mari@example.com',
-            'password' => 'password',
+            'password' => 'droppie-2026',
         ])
         ->assertRedirect(route('dashboard'));
 

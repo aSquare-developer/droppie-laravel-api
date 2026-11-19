@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // One password policy for every place that sets a password. The breach check sends only
+        // a hash prefix to Have I Been Pwned and passes if the service cannot be reached.
+        Password::defaults(function (): Password {
+            $rule = Password::min(10)->letters()->numbers();
+
+            return $this->app->isProduction() ? $rule->uncompromised() : $rule;
+        });
+
         RateLimiter::for('login', function (Request $request): array {
             $email = Str::lower((string) $request->input('email'));
 

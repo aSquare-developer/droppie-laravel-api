@@ -48,7 +48,8 @@
                 </label>
                 <label>
                     <span>Password</span>
-                    <input name="password" type="password" autocomplete="new-password" required minlength="6">
+                    <input name="password" type="password" autocomplete="new-password" required minlength="10" aria-describedby="password-hint">
+                    <small class="field-hint" id="password-hint">At least 10 characters with letters and numbers.</small>
                 </label>
                 <button class="primary-action" type="submit">Create account</button>
             </form>

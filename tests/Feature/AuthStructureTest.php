@@ -9,7 +9,7 @@ it('creates a profile and active vehicle during registration', function () {
         ->postJson('/api/register', [
             'name' => 'Mari',
             'email' => 'mari@example.com',
-            'password' => 'password',
+            'password' => 'droppie-2026',
         ])
         ->assertCreated()
         ->assertJsonPath('user.name', 'Mari')
