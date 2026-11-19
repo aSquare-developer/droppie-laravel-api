@@ -57,24 +57,22 @@ class User extends Authenticatable
     }
 
     /**
-     * Case-insensitive lookup that also finds accounts stored before emails were normalized.
+     * Email lookup. The utf8mb4 *_ci collation compares case-insensitively, so accounts stored
+     * before emails were normalized are found too, and the unique index on email is used.
      */
     public function scopeWhereEmail(Builder $query, string $email): Builder
     {
-        return $query->whereRaw('LOWER(email) = ?', [self::normalizeEmail($email)]);
+        return $query->where('email', self::normalizeEmail($email));
     }
 
     /**
-     * The account the email and password belong to. Older data may hold the same email in
-     * different letter case, so the password decides between such accounts.
+     * The account the email and password belong to.
      */
     public static function findByCredentials(string $email, string $password): ?self
     {
-        return static::query()
-            ->whereEmail($email)
-            ->orderBy('id')
-            ->get()
-            ->first(fn (self $user): bool => Hash::check($password, $user->password));
+        $user = static::query()->whereEmail($email)->first();
+
+        return $user !== null && Hash::check($password, $user->password) ? $user : null;
     }
 
     public function profile(): HasOne

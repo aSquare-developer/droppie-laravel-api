@@ -14,8 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Production runs PHP 8.5; composer.json still allows 8.3, so the SQLite job also covers that minimum.
-  PHP_VERSION: "8.5"
   NODE_VERSION: "22"
 
 jobs:
@@ -24,10 +22,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Production runs PHP 8.5; composer.json still allows 8.3, so both are tested.
     strategy:
       fail-fast: false
       matrix:
         php: ["8.3", "8.5"]
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: droppie_test
+          MARIADB_USER: droppie
+          MARIADB_PASSWORD: secret
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Check out repository
@@ -37,7 +52,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, dom, curl, zip, pdo_sqlite
+          extensions: mbstring, dom, curl, zip, pdo_mysql
           coverage: none
 
       - name: Set up Node.js
@@ -65,54 +80,3 @@ jobs:
 
       - name: Build frontend
         run: npm run build
-
-  postgres:
-    name: Tests (PostgreSQL)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: droppie_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    # Real environment variables take precedence over the SQLite defaults in phpunit.xml.
-    env:
-      DB_CONNECTION: pgsql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
-      DB_DATABASE: droppie_test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, dom, curl, zip, pdo_pgsql
-          coverage: none
-
-      - name: Install PHP dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Prepare test environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      - name: Run tests
-        run: vendor/bin/pest

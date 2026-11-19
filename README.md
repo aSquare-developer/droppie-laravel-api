@@ -19,7 +19,7 @@ Test application: [https://droppie.asquare.ee/](https://droppie.asquare.ee/)
 - PHP 8.3+
 - Composer
 - Node.js and npm
-- PostgreSQL
+- MySQL 8+ or MariaDB 10.11+ (utf8mb4)
 - Google Cloud project with billing enabled
 
 Enable these Google Cloud APIs:
@@ -41,12 +41,12 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Configure PostgreSQL and Google API credentials in `.env`:
+Configure the database and Google API credentials in `.env`:
 
 ```env
-DB_CONNECTION=pgsql
+DB_CONNECTION=mariadb
 DB_HOST=127.0.0.1
-DB_PORT=5432
+DB_PORT=3306
 DB_DATABASE=droppie_track
 DB_USERNAME=root
 DB_PASSWORD=
@@ -62,6 +62,8 @@ GOOGLE_ADDRESS_VALIDATION_ENABLED=false
 GOOGLE_MAPS_LANGUAGE=en
 GOOGLE_PLACES_COUNTRY=FI,EE
 ```
+
+On MySQL use `DB_CONNECTION=mysql`; both connections read the same `DB_*` settings.
 
 Then run:
 
@@ -145,11 +147,15 @@ vendor/bin/pint --test
 npm run build
 ```
 
-Tests use in-memory SQLite by default. Production runs on PostgreSQL, and CI also runs the suite against it. To do the same locally, point the `DB_*` variables at an empty test database:
+Tests run on MySQL/MariaDB, like production; CI uses MariaDB 10.11. Create an empty test database once (the defaults are in `phpunit.xml`; real environment variables override them):
 
-```bash
-DB_CONNECTION=pgsql DB_DATABASE=droppie_test DB_USERNAME=postgres DB_PASSWORD=postgres vendor/bin/pest
+```sql
+CREATE DATABASE droppie_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'droppie'@'127.0.0.1' IDENTIFIED BY 'secret';
+GRANT ALL ON droppie_test.* TO 'droppie'@'127.0.0.1';
 ```
+
+The test suite wipes this database on every run, so never point it at a database with real data.
 
 ## Production Deployment
 

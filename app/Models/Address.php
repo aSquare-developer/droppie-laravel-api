@@ -35,10 +35,9 @@ class Address extends Model
     /**
      * Case-insensitive "contains" search over the given address columns.
      *
-     * LIKE is case-sensitive on PostgreSQL but not on SQLite, so both sides are lowercased
-     * and the term is escaped explicitly to behave the same in production and in tests.
-     * "!" is the escape character because a backslash literal makes PDO's pgsql driver
-     * misread the query and lose the "?" placeholder.
+     * Both sides are lowercased so the search stays case-insensitive whatever the column
+     * collation, and the term is escaped explicitly. "!" is the escape character because a
+     * backslash is itself an escape inside MySQL string literals.
      *
      * @param  array<int, string>  $columns
      */
