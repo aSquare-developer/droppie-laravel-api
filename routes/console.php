@@ -8,7 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('routes:recover-stuck')->everyTenMinutes()->withoutOverlapping();
+// Overlap locks expire quickly so a killed process cannot block its task for the default 24 hours.
+Schedule::command('routes:recover-stuck')->everyTenMinutes()->withoutOverlapping(15);
 
 // A short-lived worker started every minute by the scheduler, so no process manager is needed.
-Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping();
+Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping(2);
