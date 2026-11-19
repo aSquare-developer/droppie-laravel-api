@@ -14,14 +14,20 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PHP_VERSION: "8.3"
+  # Production runs PHP 8.5; composer.json still allows 8.3, so the SQLite job also covers that minimum.
+  PHP_VERSION: "8.5"
   NODE_VERSION: "22"
 
 jobs:
   ci:
-    name: Test and build
+    name: Test and build (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.3", "8.5"]
 
     steps:
       - name: Check out repository
@@ -30,7 +36,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ env.PHP_VERSION }}
+          php-version: ${{ matrix.php }}
           extensions: mbstring, dom, curl, zip, pdo_sqlite
           coverage: none
 

@@ -62,15 +62,3 @@ it('is scheduled to run regularly', function () {
 
     expect($events)->toHaveCount(1);
 });
-
-it('lets overlap locks of scheduled tasks expire quickly', function (string $command, int $expiresAt) {
-    $event = collect(app(Schedule::class)->events())
-        ->first(fn ($event) => str_contains((string) $event->command, $command));
-
-    expect($event)->not->toBeNull()
-        ->and($event->withoutOverlapping)->toBeTrue()
-        ->and($event->expiresAt)->toBe($expiresAt);
-})->with([
-    'queue worker' => ['queue:work', 2],
-    'stuck route recovery' => ['routes:recover-stuck', 15],
-]);

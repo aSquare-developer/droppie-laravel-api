@@ -13,3 +13,7 @@ Schedule::command('routes:recover-stuck')->everyTenMinutes()->withoutOverlapping
 
 // A short-lived worker started every minute by the scheduler, so no process manager is needed.
 Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping(2);
+
+// Expired API tokens and old failed jobs are never removed otherwise, so these tables would only grow.
+Schedule::command('sanctum:prune-expired --hours=24')->dailyAt('03:17');
+Schedule::command('queue:prune-failed --hours=720')->dailyAt('03:27');
