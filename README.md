@@ -19,7 +19,7 @@ Test application: [https://droppie.asquare.ee/](https://droppie.asquare.ee/)
 - PHP 8.3+
 - Composer
 - Node.js and npm
-- MySQL 8+ or MariaDB 10.11+ (utf8mb4)
+- MariaDB 11.4 (production) or MySQL 8+, utf8mb4
 - Google Cloud project with billing enabled
 
 Enable these Google Cloud APIs:
@@ -147,7 +147,7 @@ vendor/bin/pint --test
 npm run build
 ```
 
-Tests run on MySQL/MariaDB, like production; CI uses MariaDB 10.11. Create an empty test database once (the defaults are in `phpunit.xml`; real environment variables override them):
+Tests run on MySQL/MariaDB, like production; CI uses MariaDB 11.4, the production version. Create an empty test database once (the defaults are in `phpunit.xml`; real environment variables override them):
 
 ```sql
 CREATE DATABASE droppie_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
