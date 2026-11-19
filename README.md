@@ -110,10 +110,12 @@ Locally, `composer dev` runs a queue listener, or run one by hand:
 php artisan queue:work
 ```
 
-The Laravel scheduler (`routes/console.php`) runs two tasks:
+The Laravel scheduler (`routes/console.php`) runs these tasks:
 
 - `queue:work --stop-when-empty --max-time=50` every minute: processes the queued jobs and exits, so no long-running worker or process manager is needed.
 - `routes:recover-stuck` every ten minutes: marks routes stuck in `pending` or `processing` for 60 minutes as failed (`--minutes` changes this), so they can be edited or deleted again.
+- `sanctum:prune-expired --hours=24` daily at 03:17: deletes API tokens that expired more than a day ago.
+- `queue:prune-failed --hours=720` daily at 03:27: deletes failed jobs older than 30 days.
 
 Check them with `php artisan schedule:list`.
 
