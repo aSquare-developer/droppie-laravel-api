@@ -100,25 +100,32 @@ The vehicle mileage in the profile is the start reading of the next trip report.
 
 Only the latest report can be deleted. Its start reading goes back to the profile mileage (unless the mileage was changed by hand since), so the period can be generated again.
 
-## Queue
+## Queue and Scheduler
 
-Route distance calculation runs through the Laravel queue. Temporary Google Routes failures are retried by the queue (3 tries, 15 s and 60 s apart) with one HTTP attempt per try (`GOOGLE_ROUTES_MAX_ATTEMPTS=1`), so a route costs at most three Google requests during an outage:
+Route distance calculation runs through the Laravel queue on the `database` connection (`QUEUE_CONNECTION=database`); no Redis is needed. Temporary Google Routes failures are retried by the queue (3 tries, 15 s and 60 s apart) with one HTTP attempt per try (`GOOGLE_ROUTES_MAX_ATTEMPTS=1`), so a route costs at most three Google requests during an outage.
+
+Locally, `composer dev` runs a queue listener, or run one by hand:
 
 ```bash
 php artisan queue:work
 ```
 
-Redis users can run Laravel Horizon:
+The Laravel scheduler (`routes/console.php`) runs two tasks:
+
+- `queue:work --stop-when-empty --max-time=50` every minute: processes the queued jobs and exits, so no long-running worker or process manager is needed.
+- `routes:recover-stuck` every ten minutes: marks routes stuck in `pending` or `processing` for 60 minutes as failed (`--minutes` changes this), so they can be edited or deleted again.
+
+Check them with `php artisan schedule:list`.
+
+### Production (Zone.ee)
+
+The host has no Supervisor or systemd. A single cron job, added in the hosting control panel, runs the scheduler every minute:
 
 ```bash
-php artisan horizon
+* * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-The Horizon dashboard (`/horizon`) is open outside the local environment only to the users listed in `HORIZON_ADMIN_EMAILS` (comma-separated, case-insensitive). Leave it empty to keep the dashboard closed.
-
-Production deploys run `queue:restart` and `horizon:terminate`, so workers pick up the new code. Run workers under a process manager such as Supervisor or systemd so they are started again automatically.
-
-Routes stuck in `pending` or `processing` (for example after a worker crash) are marked as failed by `php artisan routes:recover-stuck` after 60 minutes (`--minutes` changes this). It is scheduled every ten minutes, so the server needs the Laravel scheduler running (`php artisan schedule:run` from cron every minute).
+The scheduler then starts `queue:work` and `routes:recover-stuck` itself. Remove any separate cron job that runs `queue:work` directly. Deploys run `php artisan queue:restart`, so a worker still running old code exits after its current job.
 
 ## Passwords
 
@@ -157,4 +164,4 @@ Use a dedicated SSH key without a passphrase. Store the complete multiline priva
 
 Verify the key before deploying with `ssh -i ~/.ssh/droppie_deploy -o IdentitiesOnly=yes -p your-port your-user@your-server true`.
 
-The server must have PHP 8.3+, `rsync`, a configured `.env`, and writable `storage` and `bootstrap/cache` directories. Background workers and scheduled tasks are managed separately on the server.
+The server must have PHP 8.3+, `rsync`, a configured `.env`, writable `storage` and `bootstrap/cache` directories, and the scheduler cron job described in [Queue and Scheduler](#queue-and-scheduler).
