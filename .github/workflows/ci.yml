@@ -64,8 +64,14 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Check PHP dependencies for security advisories
+        run: composer audit --locked
+
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Check frontend dependencies for security advisories
+        run: npm audit --audit-level=high
 
       - name: Prepare test environment
         run: |
