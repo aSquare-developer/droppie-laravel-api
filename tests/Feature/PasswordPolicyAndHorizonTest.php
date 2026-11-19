@@ -66,14 +66,32 @@ it('closes the Horizon dashboard when no admins are configured', function () {
 });
 
 it('reads Horizon admins from a comma-separated environment variable', function () {
-    $_ENV['HORIZON_ADMIN_EMAILS'] = ' Admin@Example.com, ops@example.com ,';
-    putenv('HORIZON_ADMIN_EMAILS= Admin@Example.com, ops@example.com ,');
+    // Laravel reads $_SERVER first, then $_ENV and getenv(), so set all three and restore them.
+    $name = 'HORIZON_ADMIN_EMAILS';
+    $value = ' Admin@Example.com, ops@example.com ,';
+    $previous = [$_SERVER[$name] ?? null, $_ENV[$name] ?? null, getenv($name)];
+
+    $_SERVER[$name] = $_ENV[$name] = $value;
+    putenv("{$name}={$value}");
 
     try {
         $config = require config_path('horizon.php');
         expect($config['admin_emails'])->toBe(['admin@example.com', 'ops@example.com']);
     } finally {
-        unset($_ENV['HORIZON_ADMIN_EMAILS']);
-        putenv('HORIZON_ADMIN_EMAILS');
+        [$server, $env, $getenv] = $previous;
+
+        if ($server === null) {
+            unset($_SERVER[$name]);
+        } else {
+            $_SERVER[$name] = $server;
+        }
+
+        if ($env === null) {
+            unset($_ENV[$name]);
+        } else {
+            $_ENV[$name] = $env;
+        }
+
+        putenv($getenv === false ? $name : "{$name}={$getenv}");
     }
 });
