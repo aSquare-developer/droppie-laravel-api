@@ -117,15 +117,15 @@ The Laravel scheduler (`routes/console.php`) runs two tasks:
 
 Check them with `php artisan schedule:list`.
 
-### Production (Zone.ee)
+### Production
 
-The host has no Supervisor or systemd. A single cron job, added in the hosting control panel, runs the scheduler every minute:
+No Supervisor, systemd or other process manager is needed. A single cron entry runs the scheduler every minute:
 
 ```bash
 * * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-The scheduler then starts `queue:work` and `routes:recover-stuck` itself. Remove any separate cron job that runs `queue:work` directly. Deploys run `php artisan queue:restart`, so a worker still running old code exits after its current job.
+The cron entry must run every minute and call the PHP CLI binary (on some shared hosts plain `php` in cron is not the CLI version, so use its full path). The scheduler then starts `queue:work` and `routes:recover-stuck` itself. Remove any separate cron job that runs `queue:work` directly. Deploys run `php artisan queue:restart`, so a worker still running old code exits after its current job.
 
 ## Passwords
 

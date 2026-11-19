@@ -10,5 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('routes:recover-stuck')->everyTenMinutes()->withoutOverlapping();
 
-// The host has no Supervisor or systemd, so a short-lived worker runs every minute from the scheduler.
+// A short-lived worker started every minute by the scheduler, so no process manager is needed.
 Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping();
