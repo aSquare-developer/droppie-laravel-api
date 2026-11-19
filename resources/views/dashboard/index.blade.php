@@ -22,7 +22,7 @@
         </div>
     @endunless
 
-    <dl class="metric-bar" aria-label="Route overview">
+    <dl class="metric-bar" aria-label="Route overview" data-live-region="metrics">
         <div class="metric-item">
             <dt>Routes</dt>
             <dd>{{ $summary['routes'] }}</dd>
@@ -111,7 +111,7 @@
 
         <section class="routes-panel">
             <div class="section-title list-title">
-                <div>
+                <div data-live-region="day-summary">
                     @if ($day['date'])
                         <h2>{{ $day['date']->format('l, d M Y') }}</h2>
                         <p>
@@ -145,7 +145,7 @@
                 @include('dashboard.day-nav', ['withPicker' => true])
             @endif
 
-            <div class="routes-list" aria-live="polite">
+            <div class="routes-list" aria-live="polite" data-live-region="routes">
                 @forelse ($dayRoutes as $route)
                     @include('dashboard.route-card', [
                         'route' => $route,

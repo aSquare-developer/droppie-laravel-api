@@ -61,8 +61,8 @@ function setupFlashDismissal() {
     });
 }
 
-function setupConfirmForms() {
-    document.querySelectorAll('form[data-confirm]').forEach((form) => {
+function setupConfirmForms(root = document) {
+    root.querySelectorAll('form[data-confirm]').forEach((form) => {
         form.addEventListener('submit', (event) => {
             if (!window.confirm(form.dataset.confirm || 'Are you sure?')) {
                 event.preventDefault();
@@ -349,23 +349,27 @@ function setupRouteFormGuard() {
     });
 }
 
+const ROUTE_STATUS_POLL_MS = 8000;
+let routeStatusPolling = false;
+
+function activeRouteCards() {
+    return Array.from(document.querySelectorAll('[data-route-card][data-route-active="true"]'));
+}
+
 function setupRouteStatusPolling() {
     const shell = appShell();
 
-    if (!shell?.dataset.routeStatusUrl) {
+    if (!shell?.dataset.routeStatusUrl || routeStatusPolling || !activeRouteCards().length) {
         return;
     }
 
-    const activeCards = () => Array.from(document.querySelectorAll('[data-route-card][data-route-active="true"]'));
-
-    if (!activeCards().length) {
-        return;
-    }
+    routeStatusPolling = true;
 
     window.setTimeout(async function poll() {
-        const cards = activeCards();
+        const cards = activeRouteCards();
 
         if (!cards.length) {
+            routeStatusPolling = false;
             return;
         }
 
@@ -375,16 +379,63 @@ function setupRouteStatusPolling() {
             const payload = await requestJson(`${shell.dataset.routeStatusUrl}?ids=${encodeURIComponent(ids)}`);
             updateRouteCards(payload.data || []);
 
-            if (!activeCards().length) {
-                window.setTimeout(() => window.location.reload(), 900);
+            if (!activeRouteCards().length) {
+                // Totals, day summary and the Edit/Delete actions depend on the finished
+                // distances. Refresh just those parts so whatever is typed in the form stays.
+                routeStatusPolling = false;
+                await refreshLiveRegions();
+                setupRouteStatusPolling();
                 return;
             }
         } catch {
-            // The next full-page interaction will refresh the state.
+            // Try again on the next tick.
         }
 
-        window.setTimeout(poll, 8000);
-    }, 8000);
+        window.setTimeout(poll, ROUTE_STATUS_POLL_MS);
+    }, ROUTE_STATUS_POLL_MS);
+}
+
+/**
+ * Re-renders the parts of the page marked with data-live-region from a fresh copy of the
+ * current URL, leaving everything else (forms, focus, scroll position) untouched.
+ */
+async function refreshLiveRegions() {
+    const regions = document.querySelectorAll('[data-live-region]');
+
+    if (!regions.length) {
+        return;
+    }
+
+    let html;
+
+    try {
+        const response = await fetch(window.location.href, {
+            headers: { Accept: 'text/html' },
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok || response.redirected) {
+            return;
+        }
+
+        html = await response.text();
+    } catch {
+        return;
+    }
+
+    const fresh = new DOMParser().parseFromString(html, 'text/html');
+
+    regions.forEach((region) => {
+        const replacement = fresh.querySelector(`[data-live-region="${region.dataset.liveRegion}"]`);
+
+        if (!replacement) {
+            return;
+        }
+
+        // Swap the content, not the element, so attributes such as aria-live keep working.
+        region.innerHTML = replacement.innerHTML;
+        setupConfirmForms(region);
+    });
 }
 
 function updateRouteCards(routes) {
