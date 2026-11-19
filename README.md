@@ -121,6 +121,15 @@ The Laravel scheduler (`routes/console.php`) runs these tasks:
 
 Check them with `php artisan schedule:list`.
 
+### Failure alerts
+
+Set `ADMIN_ALERT_EMAIL` to get an email when background work fails:
+
+- a queued job has used up its retries (for example Google Routes stayed unavailable);
+- Google rejects the route request or the Routes API key is missing, which needs the administrator rather than the user.
+
+"No drivable route between the chosen addresses" is not alerted: it is shown on the route itself. At most one email is sent per kind of failure every `ADMIN_ALERT_THROTTLE_MINUTES` (default 15); the next email says how many similar failures happened in between. Emails go through the configured mailer, so with `MAIL_MAILER=log` they are written to the log until real mail is set up. A failing mailer never stops the queue worker.
+
 ### Production
 
 No Supervisor, systemd or other process manager is needed. A single cron entry runs the scheduler every minute:

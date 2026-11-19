@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Enums\DistanceStatus;
 use App\Exceptions\GoogleRouteException;
 use App\Models\Route;
+use App\Services\FailureAlerter;
 use App\Services\GoogleRouteService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -63,6 +64,15 @@ class CalculateRouteDistance implements ShouldQueue
         } catch (GoogleRouteException $exception) {
             if ($exception->isRetryable()) {
                 throw $exception;
+            }
+
+            // A missing or rejected API key needs the administrator. "No route" is about the
+            // addresses the user picked and is shown on the route itself.
+            if ($exception->reason !== GoogleRouteException::NO_ROUTE) {
+                app(FailureAlerter::class)->alert(self::class, $exception, [
+                    'route_id' => $this->route->id,
+                    'reason' => $exception->reason,
+                ]);
             }
 
             $this->failed($exception);

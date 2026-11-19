@@ -72,8 +72,16 @@ it('makes a single google request per job try by default', function () {
     Config::set('services.google.routes_max_attempts', 1);
     Http::fake(['*' => Http::response(['error' => ['message' => 'Backend error']], 503)]);
 
-    expect(fn () => app(GoogleRouteService::class)->getDistanceInKm('Tallinn', 'Tartu', 'place-tallinn', 'place-tartu'))
-        ->toThrow(GoogleRouteException::class);
+    $thrown = null;
+
+    try {
+        app(GoogleRouteService::class)->getDistanceInKm('Tallinn', 'Tartu', 'place-tallinn', 'place-tartu');
+    } catch (GoogleRouteException $exception) {
+        $thrown = $exception;
+    }
+
+    // A Google outage must stay retryable, not turn into "no route".
+    expect($thrown?->reason)->toBe(GoogleRouteException::UNAVAILABLE);
 
     Http::assertSentCount(1);
 });

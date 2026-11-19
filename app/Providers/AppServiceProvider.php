@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Services\FailureAlerter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -24,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Jobs that have used up their retries.
+        Event::listen(JobFailed::class, fn (JobFailed $event) => $this->app->make(FailureAlerter::class)->jobFailed($event));
+
         // One password policy for every place that sets a password. The breach check sends only
         // a hash prefix to Have I Been Pwned and passes if the service cannot be reached.
         Password::defaults(function (): Password {

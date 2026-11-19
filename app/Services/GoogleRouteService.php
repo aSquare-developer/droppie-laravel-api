@@ -89,7 +89,10 @@ class GoogleRouteService
                     'origin' => $this->waypoint($startAddress, $startPlaceId),
                     'destination' => $this->waypoint($endAddress, $endPlaceId),
                     'travelMode' => 'DRIVE',
-                ]);
+                ])
+                // With a single attempt, retry() hands back a failed response instead of
+                // throwing, which would otherwise be read as "no route" below.
+                ->throw();
         } catch (ConnectionException $exception) {
             $this->logFailure(GoogleRouteException::UNAVAILABLE, null, $exception);
 

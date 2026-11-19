@@ -53,4 +53,10 @@ return [
         'places_country' => env('GOOGLE_PLACES_COUNTRY'),
     ],
 
+    // Who is emailed when a background job fails, and how often at most per kind of failure.
+    'alerts' => [
+        'email' => env('ADMIN_ALERT_EMAIL'),
+        'throttle_minutes' => (int) env('ADMIN_ALERT_THROTTLE_MINUTES', 15),
+    ],
+
 ];
