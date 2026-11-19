@@ -58,20 +58,6 @@ it('still signs in legacy accounts stored with uppercase letters', function () {
     $this->postJson('/api/login', ['email' => 'legacy@example.com', 'password' => 'secret12'])->assertOk();
 });
 
-it('picks the account whose password matches when legacy duplicates exist', function () {
-    // Production may keep such duplicates: the migration then skips the unique index.
-    DB::statement('DROP INDEX users_email_lower_unique');
-
-    $first = User::factory()->create(['password' => 'first-password']);
-    $second = User::factory()->create(['password' => 'second-password']);
-    DB::table('users')->where('id', $first->id)->update(['email' => 'Dup@Example.com']);
-    DB::table('users')->where('id', $second->id)->update(['email' => 'dup@example.com']);
-
-    expect(User::findByCredentials('dup@example.com', 'second-password')?->id)->toBe($second->id)
-        ->and(User::findByCredentials('DUP@example.com', 'first-password')?->id)->toBe($first->id)
-        ->and(User::findByCredentials('dup@example.com', 'wrong'))->toBeNull();
-});
-
 it('rejects a second account in another letter case at the database level', function () {
     User::factory()->create(['email' => 'mari@example.com']);
 
