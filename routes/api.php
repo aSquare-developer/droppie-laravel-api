@@ -7,12 +7,6 @@ use App\Http\Controllers\Api\RouteController;
 use App\Http\Controllers\Api\RouteReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/hello', function () {
-    return response()->json([
-        'message' => 'Hello Droppie',
-    ]);
-});
-
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
