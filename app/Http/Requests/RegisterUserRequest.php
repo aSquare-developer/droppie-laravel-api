@@ -42,7 +42,7 @@ class RegisterUserRequest extends FormRequest
                     }
                 },
             ],
-            'password' => ['required', 'string', 'max:255', Password::min(6)],
+            'password' => ['required', 'string', 'max:255', Password::defaults()],
         ];
     }
 }

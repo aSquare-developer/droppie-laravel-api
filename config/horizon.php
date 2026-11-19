@@ -45,6 +45,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Dashboard Admins
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated emails of users who may open the Horizon dashboard outside
+    | the local environment. Empty means nobody.
+    |
+    */
+
+    'admin_emails' => array_values(array_filter(array_map(
+        fn (string $email): string => strtolower(trim($email)),
+        explode(',', (string) env('HORIZON_ADMIN_EMAILS', ''))
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon Redis Connection
     |--------------------------------------------------------------------------
     |

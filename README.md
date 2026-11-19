@@ -114,9 +114,15 @@ Redis users can run Laravel Horizon:
 php artisan horizon
 ```
 
+The Horizon dashboard (`/horizon`) is open outside the local environment only to the users listed in `HORIZON_ADMIN_EMAILS` (comma-separated, case-insensitive). Leave it empty to keep the dashboard closed.
+
 Production deploys run `queue:restart` and `horizon:terminate`, so workers pick up the new code. Run workers under a process manager such as Supervisor or systemd so they are started again automatically.
 
 Routes stuck in `pending` or `processing` (for example after a worker crash) are marked as failed by `php artisan routes:recover-stuck` after 60 minutes (`--minutes` changes this). It is scheduled every ten minutes, so the server needs the Laravel scheduler running (`php artisan schedule:run` from cron every minute).
+
+## Passwords
+
+Web and API registration share one policy (`Password::defaults()` in `AppServiceProvider`): at least 10 characters with letters and numbers. In production new passwords are also checked against Have I Been Pwned (only a hash prefix is sent; if the service is unreachable the check passes), so the server needs outbound HTTPS to `api.pwnedpasswords.com`. Existing passwords keep working.
 
 ## API Tokens
 

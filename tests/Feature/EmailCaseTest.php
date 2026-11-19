@@ -11,7 +11,7 @@ it('stores emails lowercased and trimmed', function () {
     $this->postJson('/api/register', [
         'name' => 'Mari',
         'email' => '  Mari@Example.COM ',
-        'password' => 'secret12',
+        'password' => 'droppie-2026',
     ])->assertCreated();
 
     expect(User::query()->sole()->email)->toBe('mari@example.com');
@@ -20,7 +20,7 @@ it('stores emails lowercased and trimmed', function () {
 it('rejects registering the same email in another letter case', function (string $route, bool $json) {
     User::factory()->create(['email' => 'mari@example.com']);
 
-    $payload = ['name' => 'Mari', 'email' => 'MARI@example.com', 'password' => 'secret12'];
+    $payload = ['name' => 'Mari', 'email' => 'MARI@example.com', 'password' => 'droppie-2026'];
 
     if ($json) {
         $this->postJson($route, $payload)->assertUnprocessable()->assertJsonValidationErrors('email');
