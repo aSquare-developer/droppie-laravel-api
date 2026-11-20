@@ -18,7 +18,7 @@ Test application: [https://droppie.asquare.ee/](https://droppie.asquare.ee/)
 
 - PHP 8.3+
 - Composer
-- Node.js and npm
+- Node.js 22+ and npm
 - MariaDB 11.4 (production) or MySQL 8+, utf8mb4
 - Google Cloud project with billing enabled
 
