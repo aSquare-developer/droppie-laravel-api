@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\FailureAlerter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::define('viewAdmin', fn (User $user): bool => $user->isAdmin());
+        // Moderators and admins. No moderator features exist yet.
+        Gate::define('moderate', fn (User $user): bool => $user->isModerator());
+
         // Jobs that have used up their retries.
         Event::listen(JobFailed::class, fn (JobFailed $event) => $this->app->make(FailureAlerter::class)->jobFailed($event));
 

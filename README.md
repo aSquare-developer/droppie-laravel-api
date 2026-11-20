@@ -140,6 +140,28 @@ No Supervisor, systemd or other process manager is needed. A single cron entry r
 
 The cron entry must run every minute and call the PHP CLI binary (on some shared hosts plain `php` in cron is not the CLI version, so use its full path). The scheduler then starts `queue:work` and `routes:recover-stuck` itself. Remove any separate cron job that runs `queue:work` directly. Deploys run `php artisan queue:restart`, so a worker still running old code exits after its current job.
 
+## Roles and Admin Page
+
+Every account has one of three fixed roles: `user` (default), `moderator` or `admin`. Admins can do everything moderators can. The `moderate` gate exists for moderators and admins, but there are no moderator features yet.
+
+Roles can only be changed on the server; registration, Google sign-in and profile updates never touch them:
+
+```bash
+php artisan users:set-role mari@example.com admin
+php artisan users:set-role mari@example.com user
+```
+
+The command refuses to take the admin role from the last admin, so make another user admin first. `GET /api/me` shows the role read-only.
+
+Admins see an **Admin** link in the top menu. `/admin` answers 404 to everyone else, guests included. It shows aggregate figures only, cached for 5 minutes:
+
+- users: total, new, active (by `last_active_at`, updated at most every 5 minutes per user), per role, signed in with Google, and the emails of admins and moderators;
+- routes by period and distance status; stored addresses and the 10 most used ones (address and count only);
+- PDF reports, cached route distances, queue and failed jobs;
+- Google API requests per service today and this month from `api_usage_daily`, the distance cache hit rate, and a warning above 8 000 Routes requests a month (the free Compute Routes Essentials tier is 10 000).
+
+Every real request to Google Routes, Places (Autocomplete, Details, Find Place) and Address Validation is counted per day; distance cache hits are counted as `routes_cache_hit`. A failed count is only logged and never breaks the request.
+
 ## Passwords
 
 Web and API registration share one policy (`Password::defaults()` in `AppServiceProvider`): at least 10 characters with letters and numbers. In production new passwords are also checked against Have I Been Pwned (only a hash prefix is sent; if the service is unreachable the check passes), so the server needs outbound HTTPS to `api.pwnedpasswords.com`. Existing passwords keep working.
