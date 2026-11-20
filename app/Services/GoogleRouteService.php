@@ -13,6 +13,11 @@ use Throwable;
 
 class GoogleRouteService
 {
+    public function __construct(private readonly ApiUsageCounter $usage = new ApiUsageCounter)
+    {
+        //
+    }
+
     private const ENDPOINT = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
     public function getDistanceInKm(
@@ -32,6 +37,8 @@ class GoogleRouteService
         $cachedDistance = Cache::get($cacheKey);
 
         if ($cachedDistance !== null) {
+            $this->usage->record(ApiUsageCounter::ROUTES_CACHE_HIT);
+
             Log::debug('Route distance cache hit', [
                 'cache_key' => $cacheKey,
             ]);
@@ -71,10 +78,11 @@ class GoogleRouteService
         }
 
         try {
-            $response = Http::withHeaders([
-                'X-Goog-Api-Key' => $apiKey,
-                'X-Goog-FieldMask' => 'routes.distanceMeters',
-            ])
+            $response = Http::beforeSending(fn () => $this->usage->record(ApiUsageCounter::ROUTES))
+                ->withHeaders([
+                    'X-Goog-Api-Key' => $apiKey,
+                    'X-Goog-FieldMask' => 'routes.distanceMeters',
+                ])
                 ->connectTimeout((float) config('services.google.routes_connect_timeout', 3))
                 ->timeout((float) config('services.google.routes_timeout', 10))
                 ->retry(

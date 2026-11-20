@@ -7,6 +7,10 @@
             ['route' => 'reports', 'label' => 'Reports'],
             ['route' => 'account', 'label' => 'Account'],
         ];
+
+        if (auth()->user()?->can('viewAdmin')) {
+            $navItems[] = ['route' => 'admin', 'label' => 'Admin'];
+        }
     @endphp
 
     <main class="app-shell" @yield('shell_attributes')>

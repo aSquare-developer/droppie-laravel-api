@@ -10,6 +10,11 @@ use Illuminate\Support\Str;
 
 class GoogleAddressService
 {
+    public function __construct(private readonly ApiUsageCounter $usage = new ApiUsageCounter)
+    {
+        //
+    }
+
     /**
      * Radius around the profile city that suggestions are biased towards.
      */
@@ -55,7 +60,8 @@ class GoogleAddressService
         $payload = $this->googleGet(
             'https://maps.googleapis.com/maps/api/place/autocomplete/json',
             $params,
-            'Google Places Autocomplete'
+            'Google Places Autocomplete',
+            ApiUsageCounter::PLACES_AUTOCOMPLETE
         );
 
         if (($payload['status'] ?? null) === 'ZERO_RESULTS') {
@@ -102,7 +108,8 @@ class GoogleAddressService
                     'language' => config('services.google.maps_language', 'en'),
                     'key' => $this->placesApiKey(),
                 ],
-                'Google Find Place'
+                'Google Find Place',
+                ApiUsageCounter::PLACES_FIND_PLACE
             );
         } catch (AddressLookupException|ConnectionException) {
             return null;
@@ -141,7 +148,8 @@ class GoogleAddressService
         $payload = $this->googleGet(
             'https://maps.googleapis.com/maps/api/place/details/json',
             $params,
-            'Google Place Details'
+            'Google Place Details',
+            ApiUsageCounter::PLACES_DETAILS
         );
 
         $this->ensureGoogleStatus($payload, 'Google Place Details', invalidStatuses: ['INVALID_REQUEST', 'NOT_FOUND', 'ZERO_RESULTS']);
@@ -259,6 +267,7 @@ class GoogleAddressService
         ];
 
         $response = Http::timeout(8)
+            ->beforeSending(fn () => $this->usage->record(ApiUsageCounter::ADDRESS_VALIDATION))
             ->withHeaders([
                 'X-Goog-Api-Key' => $this->addressValidationApiKey(),
             ])
@@ -283,9 +292,11 @@ class GoogleAddressService
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function googleGet(string $url, array $params, string $context): array
+    private function googleGet(string $url, array $params, string $context, string $service): array
     {
-        $response = Http::timeout(8)->get($url, $params);
+        $response = Http::timeout(8)
+            ->beforeSending(fn () => $this->usage->record($service))
+            ->get($url, $params);
 
         if (! $response->successful()) {
             throw new AddressLookupException($context.' is currently unavailable.');

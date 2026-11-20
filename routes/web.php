@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\AccountController;
 use App\Http\Controllers\Web\AddressController;
+use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\GoogleAuthController;
@@ -68,4 +69,9 @@ Route::middleware('auth')->group(function () {
         ->name('web.reports.pdf');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
+// Answers 404 to guests and non-admins alike, so the page does not reveal it exists.
+Route::middleware('admin')->group(function () {
+    Route::get('/admin', AdminController::class)->name('admin');
 });

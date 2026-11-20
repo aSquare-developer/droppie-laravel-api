@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -29,6 +30,16 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * New accounts are plain users. The role is deliberately not fillable: it is only
+     * changed with php artisan users:set-role.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'user',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -38,6 +49,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
+            'last_active_at' => 'datetime',
         ];
     }
 
@@ -73,6 +86,19 @@ class User extends Authenticatable
         $user = static::query()->whereEmail($email)->first();
 
         return $user !== null && Hash::check($password, $user->password) ? $user : null;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    /**
+     * Admins can do everything moderators can.
+     */
+    public function isModerator(): bool
+    {
+        return $this->role === UserRole::Moderator || $this->isAdmin();
     }
 
     public function profile(): HasOne

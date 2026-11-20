@@ -1156,6 +1156,51 @@ input[data-address-state="invalid"] {
     margin-left: 8px;
 }
 
+/* Admin page: aggregate figures in a two-column grid of small tables. */
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+}
+
+.admin-table th {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.admin-table thead th {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.admin-table .numeric {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-note {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
 .field-hint {
     color: var(--muted);
     font-size: 0.75rem;
@@ -1485,6 +1530,12 @@ input[data-address-state="invalid"] {
 
     .page-narrow {
         width: 100%;
+    }
+}
+
+@media (max-width: 880px) {
+    .admin-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
