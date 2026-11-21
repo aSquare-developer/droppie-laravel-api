@@ -140,6 +140,31 @@ No Supervisor, systemd or other process manager is needed. A single cron entry r
 
 The cron entry must run every minute and call the PHP CLI binary (on some shared hosts plain `php` in cron is not the CLI version, so use its full path). The scheduler then starts `queue:work` and `routes:recover-stuck` itself. Remove any separate cron job that runs `queue:work` directly. Deploys run `php artisan queue:restart`, so a worker still running old code exits after its current job.
 
+## Error Monitoring (Sentry)
+
+Errors, failed background jobs and the scheduler are reported to Sentry (project `droppie`, EU region) through `sentry/sentry-laravel`. Without a DSN the SDK sends nothing, so it stays off locally, in CI and in tests.
+
+Set these in the server's `.env`, then run `php artisan config:cache`:
+
+```env
+SENTRY_LARAVEL_DSN=https://...@....ingest.de.sentry.io/...   # Sentry → Project settings → Client Keys (DSN)
+SENTRY_TRACES_SAMPLE_RATE=0.1                                 # optional, share of requests traced
+```
+
+Check the setup on the server:
+
+```bash
+php artisan sentry:test
+```
+
+The event shows up in Sentry within a minute.
+
+- **Environment** is `APP_ENV`.
+- **Release** is the short git SHA. The deploy writes it to a `REVISION` file next to the code, so there is nothing to set by hand; `SENTRY_RELEASE` overrides it.
+- **Background jobs** are reported once they have used up their retries, not on every attempt. A rejected Google request or a missing Routes key is reported right away. "No drivable route" is a normal state of a route and is not an error. The failure emails to `ADMIN_ALERT_EMAIL` keep working alongside Sentry.
+- **Scheduler**: `queue:work`, `routes:recover-stuck`, `sanctum:prune-expired` and `queue:prune-failed` send Sentry Cron check-ins. A monitor reports missed runs, so you notice if the server's cron stops. `queue:work` opens an issue only after three missed minutes in a row.
+- **Privacy**: no personal data is sent automatically (`send_default_pii` is off), and request bodies are never attached. `App\Support\SentryScrubber` also removes passwords, Sanctum tokens, Google API keys, cookies and SQL values from events, traces and breadcrumbs. The user is identified by id only.
+
 ## Roles and Admin Page
 
 Every account has one of three fixed roles: `user` (default), `moderator` or `admin`. Admins can do everything moderators can. The `moderate` gate exists for moderators and admins, but there are no moderator features yet.

@@ -73,6 +73,9 @@ class CalculateRouteDistance implements ShouldQueue
                     'route_id' => $this->route->id,
                     'reason' => $exception->reason,
                 ]);
+
+                // The job ends normally here, so report the error to the log and Sentry ourselves.
+                report($exception);
             }
 
             $this->failed($exception);
