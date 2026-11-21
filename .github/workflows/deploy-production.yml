@@ -80,6 +80,10 @@ jobs:
       - name: Prepare production dependencies
         run: composer install --no-dev --classmap-authoritative --no-interaction --prefer-dist --no-progress
 
+      - name: Record release version
+        # Read by config/sentry.php as the Sentry release; travels to the server with the release.
+        run: echo "${GITHUB_SHA::7}" > REVISION
+
       - name: Package release
         run: |
           tar \
