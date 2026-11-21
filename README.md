@@ -228,4 +228,40 @@ Use a dedicated SSH key without a passphrase. Store the complete multiline priva
 
 Verify the key before deploying with `ssh -i ~/.ssh/droppie_deploy -o IdentitiesOnly=yes -p your-port your-user@your-server true`.
 
-The server must have PHP 8.3+, `rsync`, a configured `.env`, writable `storage` and `bootstrap/cache` directories, and the scheduler cron job described in [Queue and Scheduler](#queue-and-scheduler).
+The server must have PHP 8.3+, `tar`, a configured `.env`, and the scheduler cron job described in [Queue and Scheduler](#queue-and-scheduler). The web server must follow symlinks (Apache's default `SymLinksIfOwnerMatch` is enough, since one user owns everything).
+
+### Releases and rollback
+
+`DEPLOY_PATH` is a symlink to the live release. The document root (`DEPLOY_PATH/public`) and the cron command (`cd DEPLOY_PATH && php artisan schedule:run`) never change. Releases and shared files live next to it:
+
+```text
+<DEPLOY_PATH>-releases/
+├── releases/<UTC time>-<short sha>/   one per deploy, the newest 5 are kept
+└── shared/
+    ├── .env                           linked into every release
+    ├── storage/
+    └── well-known/                    public/.well-known (certificate challenges)
+```
+
+A deploy (`deploy/release.sh`) runs these steps:
+
+1. Unpack the release and link the shared files.
+2. Run `migrate` and `optimize` in the new release while the old one keeps serving.
+3. Switch the symlink atomically.
+4. Run `queue:restart`.
+
+If any step before the switch fails, the new release is deleted and the old one stays live. Maintenance mode is used only when there are pending migrations, and only while they run. If `/up` fails after the switch, the workflow switches back to the previous release by itself.
+
+To roll back by hand, run the **Deploy production** workflow (Actions → Run workflow) with `action: rollback`. Leave `release` empty for the release before the current one, or name a directory from `releases/`. The same works on the server:
+
+```bash
+bash ~/.droppie-deploy/rollback.sh /path/to/DEPLOY_PATH            # previous release
+bash ~/.droppie-deploy/rollback.sh /path/to/DEPLOY_PATH <release>  # a specific one
+```
+
+Database migrations are not rolled back, so keep migrations backward compatible (add first, remove in a later release).
+
+After a switch, PHP may serve the previous release for up to about two minutes, which is PHP's realpath cache. The old release stays on disk, so this is harmless.
+
+The first deploy converts an existing plain `DEPLOY_PATH` directory into this layout by itself. It copies `.env`, `storage` and `public/.well-known` into `shared/` and keeps the old directory as `releases/00000000000000-legacy`, so it is also the rollback target if that first release fails its health check.
+
