@@ -5,6 +5,18 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      action:
+        description: "deploy builds and releases main; rollback switches the server back to an earlier release"
+        type: choice
+        options:
+          - deploy
+          - rollback
+        default: deploy
+      release:
+        description: "Rollback only: release directory name to switch to (empty = the one before the current release)"
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -21,6 +33,7 @@ env:
 jobs:
   ci:
     name: Test and build
+    if: github.event_name == 'push' || inputs.action == 'deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -108,6 +121,88 @@ jobs:
     name: Deploy
     needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+      KEEP_RELEASES: "5"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: production-release
+
+      - name: Set up SSH
+        uses: ./.github/actions/production-ssh
+
+      - name: Upload release
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The deploy scripts ship inside the release itself.
+          tar -xzf release.tar.gz ./deploy/release.sh ./deploy/rollback.sh
+
+          # A private directory in the deploy user's home: /tmp may be shared on the host.
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p -m 700 .droppie-deploy && chmod 700 .droppie-deploy"
+          # shellcheck disable=SC2086
+          scp $SSH_OPTS -P "$DEPLOY_PORT" release.tar.gz deploy/release.sh deploy/rollback.sh \
+            "$DEPLOY_USER@$DEPLOY_HOST:.droppie-deploy/"
+
+      - name: Activate release
+        id: activate
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_name="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          echo "Release: $release_name"
+
+          # Prepares the release next to the live one and switches a symlink; on any failure before
+          # the switch the current release keeps serving. See deploy/release.sh.
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            bash .droppie-deploy/release.sh "$DEPLOY_PATH" .droppie-deploy/release.tar.gz "$release_name" "$KEEP_RELEASES"
+
+      - name: Check application health
+        id: health
+        if: ${{ env.PRODUCTION_URL != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --max-time 20 \
+            "${PRODUCTION_URL%/}/up"
+
+      - name: Roll back to the previous release
+        # Only after the switch: if activation itself failed, the old release is still live.
+        if: ${{ failure() && steps.health.outcome == 'failure' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::error::The new release failed its health check; switching back to the previous release."
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" bash .droppie-deploy/rollback.sh "$DEPLOY_PATH"
+
+  rollback:
+    name: Roll back
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
 
@@ -119,199 +214,36 @@ jobs:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
       DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
       PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+      TARGET_RELEASE: ${{ inputs.release }}
 
     steps:
-      - name: Download release artifact
-        uses: actions/download-artifact@v8
+      - name: Check out repository
+        uses: actions/checkout@v7
         with:
-          name: production-release
+          sparse-checkout: |
+            .github/actions
+            deploy
 
-      - name: Validate deployment configuration
+      - name: Set up SSH
+        uses: ./.github/actions/production-ssh
+
+      - name: Switch release
         shell: bash
         run: |
           set -euo pipefail
-
-          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
-            if [[ -z "${!name}" ]]; then
-              echo "::error::GitHub secret ${name} is not configured."
-              exit 1
-            fi
-          done
-
-          if [[ -z "$DEPLOY_PORT" ]]; then
-            echo "DEPLOY_PORT=22" >> "$GITHUB_ENV"
-          fi
-
-      - name: Configure SSH
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          if ! ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null 2>&1; then
-            echo "::error::DEPLOY_SSH_KEY is not a valid private SSH key."
-            echo "::error::Store the complete multiline private key, including its BEGIN and END lines."
-            exit 1
-          fi
-
-          echo "Deploy key fingerprint:"
-          ssh-keygen -lf ~/.ssh/deploy_key
-
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-          known_host="$DEPLOY_HOST"
-          if [[ "$DEPLOY_PORT" != "22" ]]; then
-            known_host="[$DEPLOY_HOST]:$DEPLOY_PORT"
-          fi
-
-          if ! ssh-keygen -F "$known_host" -f ~/.ssh/known_hosts >/dev/null; then
-            echo "::error::DEPLOY_KNOWN_HOSTS does not contain a key for ${known_host}."
-            echo "::error::Generate it with: ssh-keyscan -p ${DEPLOY_PORT} -H ${DEPLOY_HOST}"
-            exit 1
-          fi
-
-      - name: Verify SSH authentication
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! ssh \
-            -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=15 \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile=~/.ssh/known_hosts \
-            -p "$DEPLOY_PORT" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            true; then
-            echo "::error::The server rejected DEPLOY_SSH_KEY for DEPLOY_USER."
-            echo "::error::Add the matching public key to that user's ~/.ssh/authorized_keys and verify its ownership and permissions."
-            exit 1
-          fi
-
-      - name: Upload release
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          scp \
-            -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=15 \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile=~/.ssh/known_hosts \
-            -P "$DEPLOY_PORT" \
-            release.tar.gz \
-            "$DEPLOY_USER@$DEPLOY_HOST:/tmp/droppie-$GITHUB_SHA.tar.gz"
-
-      - name: Activate release
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ssh \
-            -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o ConnectTimeout=15 \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile=~/.ssh/known_hosts \
-            -p "$DEPLOY_PORT" \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            bash -se -- "$DEPLOY_PATH" "/tmp/droppie-$GITHUB_SHA.tar.gz" <<'DEPLOY_SCRIPT'
-          set -euo pipefail
-
-          DEPLOY_PATH="$1"
-          RELEASE_ARCHIVE="$2"
-          WORK_DIR="$(mktemp -d)"
-
-          cleanup() {
-            rm -rf "$WORK_DIR" "$RELEASE_ARCHIVE"
-          }
-
-          restore_application() {
-            cd "$DEPLOY_PATH"
-            php artisan up || true
-            cleanup
-          }
-
-          trap cleanup EXIT
-
-          if [[ "$DEPLOY_PATH" != /* || "$DEPLOY_PATH" == "/" ]]; then
-            echo "Deploy path must be an absolute application directory and cannot be /."
-            exit 1
-          fi
-
-          if [[ ! -d "$DEPLOY_PATH" ]]; then
-            echo "Deploy path does not exist: $DEPLOY_PATH"
-            exit 1
-          fi
-
-          if [[ ! -f "$DEPLOY_PATH/.env" ]]; then
-            echo "Production .env is missing: $DEPLOY_PATH/.env"
-            exit 1
-          fi
-
-          if [[ ! -f "$RELEASE_ARCHIVE" ]]; then
-            echo "Release archive does not exist: $RELEASE_ARCHIVE"
-            exit 1
-          fi
-
-          command -v php >/dev/null
-          command -v rsync >/dev/null
-          command -v tar >/dev/null
-
-          tar -xzf "$RELEASE_ARCHIVE" -C "$WORK_DIR"
-
-          cd "$DEPLOY_PATH"
-          php artisan down --retry=60 || true
-          trap restore_application EXIT
-
-          rsync -a --delete \
-            --exclude=".env*" \
-            --exclude=".git/" \
-            --exclude="storage/" \
-            --exclude="public/storage" \
-            --exclude="public/.well-known/" \
-            --exclude="bootstrap/cache/" \
-            "$WORK_DIR/" "$DEPLOY_PATH/"
-
-          mkdir -p \
-            storage/framework/cache/data \
-            storage/framework/sessions \
-            storage/framework/views \
-            storage/logs \
-            bootstrap/cache
-
-          # Cached config, routes, events and provider manifests were built from the previous
-          # release and can reference classes that no longer exist, which stops artisan from
-          # booting at all (even optimize:clear). Drop them before running any artisan command.
-          rm -f bootstrap/cache/*.php
-
-          php artisan optimize:clear
-          php artisan migrate --force
-          php artisan storage:link || true
-          php artisan optimize
-          php artisan queue:restart
-          php artisan up
-
-          trap - EXIT
-          cleanup
-          DEPLOY_SCRIPT
+          # A private directory in the deploy user's home: /tmp may be shared on the host.
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p -m 700 .droppie-deploy && chmod 700 .droppie-deploy"
+          # shellcheck disable=SC2086
+          scp $SSH_OPTS -P "$DEPLOY_PORT" deploy/rollback.sh "$DEPLOY_USER@$DEPLOY_HOST:.droppie-deploy/rollback.sh"
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            bash .droppie-deploy/rollback.sh "$DEPLOY_PATH" "$TARGET_RELEASE"
 
       - name: Check application health
         if: ${{ env.PRODUCTION_URL != '' }}
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --show-error --silent \
-            --retry 5 \
-            --retry-delay 5 \
-            --max-time 20 \
+          curl --fail --show-error --silent --retry 5 --retry-delay 5 --retry-all-errors --max-time 20 \
             "${PRODUCTION_URL%/}/up"

@@ -1,0 +1,69 @@
+name: Production SSH
+description: Validates the deploy secrets and sets up a verified SSH connection to the production server.
+
+# Reads DEPLOY_HOST, DEPLOY_PORT, DEPLOY_USER, DEPLOY_PATH, DEPLOY_SSH_KEY and DEPLOY_KNOWN_HOSTS
+# from the calling job's environment, and exports SSH_OPTS for the following steps.
+runs:
+  using: composite
+  steps:
+    - name: Validate deployment configuration
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        for name in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+          if [[ -z "${!name}" ]]; then
+            echo "::error::GitHub secret ${name} is not configured."
+            exit 1
+          fi
+        done
+
+        if [[ -z "$DEPLOY_PORT" ]]; then
+          echo "DEPLOY_PORT=22" >> "$GITHUB_ENV"
+        fi
+
+    - name: Configure SSH
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        install -m 700 -d ~/.ssh
+        printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+
+        if ! ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null 2>&1; then
+          echo "::error::DEPLOY_SSH_KEY is not a valid private SSH key."
+          echo "::error::Store the complete multiline private key, including its BEGIN and END lines."
+          exit 1
+        fi
+
+        echo "Deploy key fingerprint:"
+        ssh-keygen -lf ~/.ssh/deploy_key
+
+        printf '%s\n' "$DEPLOY_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
+
+        known_host="$DEPLOY_HOST"
+        if [[ "$DEPLOY_PORT" != "22" ]]; then
+          known_host="[$DEPLOY_HOST]:$DEPLOY_PORT"
+        fi
+
+        if ! ssh-keygen -F "$known_host" -f ~/.ssh/known_hosts >/dev/null; then
+          echo "::error::DEPLOY_KNOWN_HOSTS does not contain a key for ${known_host}."
+          echo "::error::Generate it with: ssh-keyscan -p ${DEPLOY_PORT} -H ${DEPLOY_HOST}"
+          exit 1
+        fi
+
+        echo "SSH_OPTS=-i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" >> "$GITHUB_ENV"
+
+    - name: Verify SSH authentication
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # shellcheck disable=SC2086
+        if ! ssh $SSH_OPTS -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" true; then
+          echo "::error::The server rejected DEPLOY_SSH_KEY for DEPLOY_USER."
+          echo "::error::Add the matching public key to that user's ~/.ssh/authorized_keys and verify its ownership and permissions."
+          exit 1
+        fi
