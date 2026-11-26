@@ -3,15 +3,18 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^13.44",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.29",
         "laravel/tinker": "^3.0",
+        "nforst/fagus": "^1.1",
         "sentry/sentry-laravel": "^4.31"
     },
     "require-dev": {
@@ -74,6 +77,9 @@
     "extra": {
         "laravel": {
             "dont-discover": []
+        },
+        "fagus": {
+            "install-strict": true
         }
     },
     "config": {
@@ -85,7 +91,8 @@
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "nforst/fagus": true
         }
     },
     "minimum-stability": "stable",
