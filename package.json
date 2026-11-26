@@ -7,8 +7,10 @@
         "dev": "vite"
     },
     "devDependencies": {
-        "concurrently": "^10.0.7",
         "laravel-vite-plugin": "^3.2",
         "vite": "^8.0.0"
+    },
+    "optionalDependencies": {
+        "@laravel/multiplex": "^0.4.5"
     }
 }

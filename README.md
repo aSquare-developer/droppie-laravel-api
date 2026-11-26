@@ -18,7 +18,7 @@ Test application: [https://droppie.asquare.ee/](https://droppie.asquare.ee/)
 
 - PHP 8.3+
 - Composer
-- Node.js 22+ and npm
+- Node.js 20.19+ or 22.12+ and npm (Vite 8)
 - MariaDB 11.4 (production) or MySQL 8+, utf8mb4
 - Google Cloud project with billing enabled
 
@@ -72,7 +72,7 @@ php artisan migrate
 composer dev
 ```
 
-`composer dev` starts the Laravel server, queue listener, logs, and Vite.
+`composer dev` runs `php artisan dev`, which starts the Laravel server, queue listener, logs, and Vite (`php artisan dev:list` shows them).
 
 ## Google OAuth
 
