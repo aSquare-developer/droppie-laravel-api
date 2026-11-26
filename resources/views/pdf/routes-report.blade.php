@@ -1,16 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Trip Log</title>
 
     <style>
         @page {
-            margin: 24px;
+            size: A4 landscape;
+            margin: 24px 24px 36px;
+
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                color: #666;
+                font-size: 8px;
+            }
         }
 
         body {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: Inter, sans-serif;
             font-size: 9px;
             color: #222;
         }
@@ -60,6 +67,10 @@
             padding: 5px;
             vertical-align: top;
             overflow-wrap: break-word;
+        }
+
+        .routes tr {
+            break-inside: avoid;
         }
 
         .routes th {

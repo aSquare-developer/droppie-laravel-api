@@ -187,6 +187,23 @@ Admins see an **Admin** link in the top menu. `/admin` answers 404 to everyone e
 
 Every real request to Google Routes, Places (Autocomplete, Details, Find Place) and Address Validation is counted per day; distance cache hits are counted as `routes_cache_hit`. A failed count is only logged and never breaks the request.
 
+## PDF Reports
+
+Trip reports are rendered with [Fagus](https://github.com/nforst/fagus), from the Blade view `resources/views/pdf/routes-report.blade.php`. Page size, margins and the "Page N of M" footer come from its `@page` rules, and the table header repeats on every page.
+
+Fagus is a native binary, not PHP. Its Composer plugin downloads the binary for the machine that runs `composer install` (allowed in `composer.json`, with `install-strict` so a missing binary fails the install), and PHP starts it with `proc_open`.
+
+- **Local:** `composer install` sets it up on macOS and Linux.
+- **Production:** the release is built on GitHub Actions (Linux x86_64) and ships the binary in `vendor/`, so the server needs `proc_open` enabled and must allow running a binary from the app directory.
+
+Check it with:
+
+```bash
+php artisan pdf:check
+```
+
+The deploy runs this before switching releases, so a server that cannot run the binary keeps the previous release.
+
 ## Passwords
 
 Web and API registration share one policy (`Password::defaults()` in `AppServiceProvider`): at least 10 characters with letters and numbers. In production new passwords are also checked against Have I Been Pwned (only a hash prefix is sent; if the service is unreachable the check passes), so the server needs outbound HTTPS to `api.pwnedpasswords.com`. Existing passwords keep working.

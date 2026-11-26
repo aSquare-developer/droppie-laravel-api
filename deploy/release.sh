@@ -99,6 +99,10 @@ fi
 cd "$NEW"
 php artisan storage:link --force >/dev/null
 
+# PDFs are rendered by the Fagus binary, which PHP starts with proc_open. If this host cannot run
+# it, stop here: the current release keeps serving and keeps its working PDFs.
+php artisan pdf:check
+
 # Maintenance mode lives in the shared storage, so it covers the release still serving traffic.
 # It is only needed while migrations change the database under the old code.
 pending="$(php artisan migrate:status --pending --no-ansi)"
